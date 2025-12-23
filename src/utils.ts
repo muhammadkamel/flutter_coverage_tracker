@@ -6,7 +6,11 @@ export function resolveTestFilePath(currentFilePath: string, workspaceRoot: stri
     if (relativePath.startsWith('lib' + path.sep)) {
         // Standard structure: lib/foo/bar.dart -> test/foo/bar_test.dart
         const pathInLib = relativePath.substring(4); // remove 'lib/'
-        const pathWithoutExt = pathInLib.substring(0, pathInLib.length - 5); // remove '.dart'
+        // Handle packages that use `lib/src/...` but place tests in `test/...` (drop leading 'src/')
+        const adjustedPathInLib = pathInLib.startsWith('src' + path.sep)
+            ? pathInLib.substring(4)
+            : pathInLib;
+        const pathWithoutExt = adjustedPathInLib.substring(0, adjustedPathInLib.length - 5); // remove '.dart'
         return path.join(workspaceRoot, 'test', `${pathWithoutExt}_test.dart`);
     } else if (relativePath.startsWith('test' + path.sep)) {
         // Already in test, return as is

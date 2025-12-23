@@ -14,6 +14,15 @@ suite('Utils Test Suite', () => {
         assert.strictEqual(result, expected);
     });
 
+    test('Resolves lib/src file to test file (strips src)', () => {
+        const input = path.join(workspaceRoot, 'lib', 'src', 'feature', 'foo.dart');
+        // Expect 'src' to be stripped from the test path
+        const expected = path.join(workspaceRoot, 'test', 'feature', 'foo_test.dart');
+
+        const result = resolveTestFilePath(input, workspaceRoot);
+        assert.strictEqual(result, expected);
+    });
+
     test('Resolves file already in test folder', () => {
         const input = path.join(workspaceRoot, 'test', 'feature', 'foo_test.dart');
         const expected = input;

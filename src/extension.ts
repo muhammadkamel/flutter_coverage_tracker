@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { parseLcovFile } from './coverageParser';
+import { deduceSourceFilePath, findCoverageEntry } from './coverageMatching';
 import { resolveTestFilePath } from './utils';
 import * as cp from 'child_process';
 import { getWebviewContent } from './webview';
@@ -134,61 +135,19 @@ export function activate(context: vscode.ExtensionContext) {
                     try {
                         const result = await parseLcovFile(coverageFile);
 
-                        // Normalization Helper
-                        const normalizePath = (p: string) => p.split(path.sep).join('/');
-
-                        // 1. Determine the expected source file path from the test file path
-                        const relativeTestPath = path.relative(workspaceRoot, testFilePath);
-                        const normalizedTestPath = normalizePath(relativeTestPath);
-
-                        if (normalizedTestPath.startsWith('test/')) {
-                            const stripPrefix = normalizedTestPath.substring(5); // remove 'test/'
-                            if (stripPrefix.endsWith('_test.dart')) {
-                                targetSourceSuffix = 'lib/' + stripPrefix.substring(0, stripPrefix.length - 10) + '.dart';
-                            }
-                        }
+                        targetSourceSuffix = deduceSourceFilePath(testFilePath, workspaceRoot) || '';
 
                         // Log diagnostic info to Webview
                         panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Test Run Completed.` });
-                        panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Test File: ${normalizedTestPath}` });
+                        panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Test File: ${testFilePath}` });
                         panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Looking for coverage of: ${targetSourceSuffix}` });
 
                         if (targetSourceSuffix) {
-                            // 2. Search for the file in LCOV data
-                            // We construct a normalized map of the LCOV data to handle absolute/relative mismatches
-                            const normalizedLcovFiles = result.files.map(f => {
-                                let fPath = f.file;
-                                // If it's absolute and inside workspace, make it relative
-                                if (path.isAbsolute(fPath) && fPath.startsWith(workspaceRoot)) {
-                                    fPath = path.relative(workspaceRoot, fPath);
-                                }
-                                return {
-                                    original: f,
-                                    normalized: normalizePath(fPath)
-                                };
-                            });
+                            const matchResult = findCoverageEntry(targetSourceSuffix, result.files, workspaceRoot);
 
-                            let match = normalizedLcovFiles.find(item => item.normalized === targetSourceSuffix);
-
-                            // Strategy 2: Try suffix match (e.g. if lcov has absolute paths outside workspace or weird relative paths)
-                            if (!match) {
-                                match = normalizedLcovFiles.find(item => item.normalized.endsWith(targetSourceSuffix));
-                                if (match) {
-                                    panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Found via suffix match: ${match.normalized}` });
-                                }
-                            }
-
-                            // Strategy 3: Basename match (weakest, but good fallback)
-                            if (!match) {
-                                const targetBasename = path.basename(targetSourceSuffix);
-                                match = normalizedLcovFiles.find(item => path.basename(item.normalized) === targetBasename);
-                                if (match) {
-                                    panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Found via basename match: ${match.normalized}` });
-                                }
-                            }
-
-                            if (match) {
-                                coverageData = match.original;
+                            if (matchResult) {
+                                coverageData = matchResult.fileCoverage;
+                                panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Found via ${matchResult.matchType} match: ${matchResult.normalizedPath}` });
                                 panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Match successful! Coverage: ${coverageData.percentage}%` });
                             } else {
                                 panel.webview.postMessage({ type: 'log', value: `[Coverage Warning] No specific coverage found for ${targetSourceSuffix}. Displaying overall project coverage.` });

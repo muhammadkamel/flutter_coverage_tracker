@@ -7,6 +7,7 @@ import { FlutterTestRunner } from './features/test-runner/FlutterTestRunner';
 import { VsCodeFileWatcher } from './features/test-runner/VsCodeFileWatcher';
 import { CoverageOrchestrator } from './features/test-runner/CoverageOrchestrator';
 import { WebviewGenerator } from './features/test-runner/WebviewGenerator';
+import { MultiTestWebviewGenerator } from './features/test-runner/MultiTestWebviewGenerator';
 import { CoverageMatcher } from './shared/coverage/CoverageMatcher';
 
 let statusBarItem: vscode.StatusBarItem;
@@ -146,6 +147,121 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(runTestDisposable);
+
+    // Command: Run Folder Tests
+    let runFolderTestsDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runFolderTests', async (uri?: vscode.Uri) => {
+        if (!uri) {
+            vscode.window.showErrorMessage('No folder selected.');
+            return;
+        }
+
+        const folderPath = uri.fsPath;
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        if (!workspaceFolder) {
+            vscode.window.showErrorMessage('Folder is not in a workspace.');
+            return;
+        }
+
+        const workspaceRoot = workspaceFolder.uri.fsPath;
+        const relativeSelectedPath = path.relative(workspaceRoot, folderPath);
+
+        // If user selected a lib/ subfolder, we target corresponding test/ subfolder
+        let testFolderPath = folderPath;
+        if (relativeSelectedPath.startsWith('lib')) {
+            const innerPath = relativeSelectedPath.substring(3); // remove 'lib'
+            testFolderPath = path.join(workspaceRoot, 'test', innerPath);
+        }
+
+        if (!fs.existsSync(testFolderPath)) {
+            vscode.window.showErrorMessage(`No tests found for folder: ${relativeSelectedPath}`);
+            return;
+        }
+
+        const folderName = path.basename(folderPath);
+        const panel = vscode.window.createWebviewPanel(
+            'flutterFolderTests',
+            `Tests: ${folderName}`,
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            }
+        );
+
+        const styleUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'out', 'webview.css'));
+        panel.webview.html = MultiTestWebviewGenerator.getWebviewContent(folderName, styleUri);
+
+        // Find all test files in this folder to show in dashboard
+        const testFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(testFolderPath, '**/*_test.dart'));
+        panel.webview.postMessage({
+            type: 'init-dashboard',
+            files: testFiles.map(f => path.relative(testFolderPath, f.fsPath))
+        });
+
+        // Run tests
+        const outputDisposable = testRunner.onTestOutput(out => {
+            panel.webview.postMessage({ type: 'log', value: out });
+        });
+
+        const completeDisposable = testRunner.onTestComplete(async result => {
+            const config = vscode.workspace.getConfiguration('flutterCoverage');
+            const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
+            const coverageFile = path.join(workspaceRoot, relativePath);
+
+            const folderResults: any[] = [];
+
+            if (fs.existsSync(coverageFile)) {
+                try {
+                    const lcov = await LcovParser.parse(coverageFile);
+                    for (const testFile of testFiles) {
+                        const sourceFile = CoverageMatcher.deduceSourceFilePath(testFile.fsPath, workspaceRoot);
+                        if (sourceFile) {
+                            const match = CoverageMatcher.findCoverageEntry(sourceFile, lcov.files, workspaceRoot);
+
+                            // Infer individual test success from coverage
+                            // If coverage exists, test likely passed; otherwise failed
+                            const testSuccess = match && match.fileCoverage ? true : false;
+
+                            folderResults.push({
+                                name: path.relative(testFolderPath, testFile.fsPath),
+                                success: testSuccess,
+                                coverage: match ? match.fileCoverage : null
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            panel.webview.postMessage({
+                type: 'finished',
+                success: result.success,
+                results: folderResults
+            });
+
+            updateCoverage(); // Update status bar
+        });
+
+        panel.webview.onDidReceiveMessage(message => {
+            if (message.type === 'rerun') {
+                testRunner.run(testFolderPath, workspaceRoot);
+            } else if (message.type === 'cancel') {
+                testRunner.cancel();
+            }
+        });
+
+        panel.onDidDispose(() => {
+            testRunner.cancel();
+            outputDisposable.dispose();
+            completeDisposable.dispose();
+        });
+
+        // Initial Run
+        testRunner.run(testFolderPath, workspaceRoot);
+    });
+
+    context.subscriptions.push(runFolderTestsDisposable);
 }
 
 function getCoverageFilePath(): string | undefined {

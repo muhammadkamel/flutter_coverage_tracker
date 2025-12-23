@@ -81,4 +81,35 @@ suite('Coverage Orchestrator Test Suite', () => {
         orchestrator.toggleWatch(true);
         assert.strictEqual(mockWatcher.watchedFile, testFile);
     });
+
+    test('rapid file changes should reset debounce timer', async () => {
+        await orchestrator.runTest(testFile, workspaceRoot);
+        orchestrator.toggleWatch(true);
+
+        // Fire change twice rapidly
+        mockWatcher.fireChange();
+
+        // Wait a bit, but less than debounce (2000ms)
+        await new Promise(resolve => setTimeout(resolve, 500));
+        mockWatcher.fireChange(); // This should trigger line 61
+
+        // Runner should only be called once after double debounce
+        mockRunner.runCalledWith = undefined;
+        await new Promise(resolve => setTimeout(resolve, 2100));
+
+        assert.deepStrictEqual(mockRunner.runCalledWith, { file: testFile, root: workspaceRoot });
+    }).timeout(5000);
+
+    test('onFileChanged returns early if not watching', () => {
+        orchestrator.toggleWatch(false);
+        mockWatcher.fireChange();
+        assert.strictEqual(mockRunner.runCalledWith, undefined);
+    });
+
+    test('onFileChanged returns early if no activeTestFile', () => {
+        orchestrator.toggleWatch(true);
+        // orchestrator.runTest was never called
+        mockWatcher.fireChange();
+        assert.strictEqual(mockRunner.runCalledWith, undefined);
+    });
 });

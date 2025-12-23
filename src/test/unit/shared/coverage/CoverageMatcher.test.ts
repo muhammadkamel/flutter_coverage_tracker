@@ -91,4 +91,16 @@ suite('Coverage Matching Test Suite', () => {
         const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
         assert.strictEqual(result, undefined);
     });
+
+    test('findCoverageEntry handles absolute path outside workspaceRoot', () => {
+        const workspaceRoot = '/root';
+        const files: FileCoverageData[] = [
+            { file: '/other/path/lib/foo.dart', linesFound: 10, linesHit: 5, percentage: 50, uncoveredLines: [] }
+        ];
+
+        // Should find it via suffix match since it's absolute but outside root
+        const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
+        assert.ok(result);
+        assert.strictEqual(result?.matchType, 'suffix');
+    });
 });

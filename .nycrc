@@ -1,0 +1,20 @@
+{
+  "all": true,
+  "include": [
+    "src/**/*.ts",
+    "out/**/*.js"
+  ],
+  "exclude": [
+    "src/test/**/*",
+    "out/test/**/*",
+    "**/*.d.ts",
+    "**/*.test.js",
+    "**/*.test.ts"
+  ],
+  "reporter": [
+    "text",
+    "lcov"
+  ],
+  "sourceMap": true,
+  "instrument": true
+}

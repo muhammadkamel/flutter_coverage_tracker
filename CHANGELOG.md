@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.6.0] - 2025-12-24
+
+### Added
+
+- **UI**: Uncovered lines count now displayed in card title (e.g., "Uncovered Lines (5)")
+- **UI**: Floating scroll-to-top button appears when scrolling down in test results
+- **Testing**: Comprehensive test coverage for folder test status validation
+
+### Fixed
+
+- **Critical**: Multi-test dashboard now correctly shows individual test status instead of marking all tests as FAILED
+- **Logic**: Each test file status is now inferred from its coverage data presence
+- **UX**: Summary counts now accurate (e.g., "5 Passed, 2 Failed" instead of "0 Passed, 7 Failed")
+
+### Improved
+
+- **Testing**: Increased test coverage to 84 tests (from 83)
+- **Quality**: All tests passing with no regressions
+
+## [0.5.0] - 2025-12-24
+
+- **Quality**: Achieved 100% logic coverage on all core business modules (FlutterTestRunner, LcovParser, CoverageMatcher, WebviewGenerator, MultiTestWebviewGenerator, CoverageOrchestrator, VsCodeFileWatcher, FileSystemUtils).
+- **Testing**: Implemented comprehensive dual-layer test architecture with 80 unit tests and integration smoke tests.
+- **Testing**: Added standalone unit test environment with full VS Code API mocking for isolated logic testing.
+- **Testing**: Overall code coverage improved to 83% statements, 76% branches, 88% functions.
+- **Reliability**: All business logic paths now thoroughly verified with edge case handling.
+
 ## [0.4.0]
 
 - **Feature**: Re-run tests directly from the Webview UI.

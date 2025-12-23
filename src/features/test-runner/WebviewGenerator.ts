@@ -43,6 +43,37 @@ export class WebviewGenerator {
             background-size: 200% 100%;
             animation: shimmer 2s infinite linear;
         }
+        
+        /* Scroll to Top Button */
+        #scroll-to-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        #scroll-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        #scroll-to-top:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6);
+        }
+        #scroll-to-top:active {
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body class="bg-vscode-editor-bg text-vscode-fg p-6 font-sans antialiased selection:bg-indigo-500/30">
@@ -104,6 +135,17 @@ export class WebviewGenerator {
                         <span class="text-xl">📊</span>
                         <span>Coverage</span>
                     </h2>
+
+                    <!-- Skeleton Loader for Coverage -->
+                    <div id="coverage-skeleton" class="animate-pulse space-y-4">
+                        <div class="w-32 h-32 mx-auto bg-vscode-border/50 rounded-full"></div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="h-16 bg-vscode-border/30 rounded-lg"></div>
+                            <div class="h-16 bg-vscode-border/30 rounded-lg"></div>
+                            <div class="h-16 bg-vscode-border/30 rounded-lg"></div>
+                        </div>
+                    </div>
+
                     <div id="coverage-container" class="hidden">
                         <!-- Circular Progress -->
                         <div class="w-32 h-32 mx-auto mb-5 relative">
@@ -147,7 +189,7 @@ export class WebviewGenerator {
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-lg font-bold text-vscode-fg flex items-center gap-2">
                             <span class="text-xl">🎯</span>
-                            <span>Uncovered Lines</span>
+                            <span id="uncovered-title">Uncovered Lines</span>
                         </h2>
                         <button id="copy-lines-btn" class="px-4 py-2 bg-vscode-button hover:bg-vscode-button-hover text-white rounded-full text-sm font-semibold transition-all flex items-center gap-2 shadow-md hover:shadow-lg" title="Copy all uncovered line numbers">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,11 +198,28 @@ export class WebviewGenerator {
                             <span id="copy-btn-text">Copy</span>
                         </button>
                     </div>
+
+                    <!-- Skeleton Loader for Uncovered Lines -->
+                    <div id="uncovered-skeleton" class="animate-pulse flex flex-wrap gap-2">
+                        <div class="w-10 h-6 bg-vscode-border/30 rounded"></div>
+                        <div class="w-12 h-6 bg-vscode-border/30 rounded"></div>
+                        <div class="w-8 h-6 bg-vscode-border/30 rounded"></div>
+                        <div class="w-14 h-6 bg-vscode-border/30 rounded"></div>
+                        <div class="w-10 h-6 bg-vscode-border/30 rounded"></div>
+                    </div>
+
                     <div id="uncovered-lines-list" class="flex flex-wrap gap-2 max-h-80 overflow-y-auto p-2 bg-black/20 rounded-lg"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-to-top" title="Scroll to top">
+        <svg width="24" height="24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 15l-6-6-6 6"></path>
+        </svg>
+    </button>
 
     <script>
         const vscode = acquireVsCodeApi();
@@ -172,6 +231,9 @@ export class WebviewGenerator {
         const rerunBtn = document.getElementById('rerun-btn');
         const cancelBtn = document.getElementById('cancel-btn');
         const watchBtn = document.getElementById('watch-btn');
+        
+        const coverageSkeleton = document.getElementById('coverage-skeleton');
+        const uncoveredSkeleton = document.getElementById('uncovered-skeleton');
         
         let isWatching = false;
 
@@ -192,10 +254,14 @@ export class WebviewGenerator {
                      progressBar.classList.add('hidden');
                      rerunBtn.classList.remove('hidden');
                      cancelBtn.classList.add('hidden');
+                     coverageSkeleton.classList.add('hidden');
+                     uncoveredSkeleton.classList.add('hidden');
                 } else {
                      progressBar.classList.remove('hidden');
                      rerunBtn.classList.add('hidden');
                      cancelBtn.classList.remove('hidden');
+                     coverageSkeleton.classList.remove('hidden');
+                     uncoveredSkeleton.classList.remove('hidden');
                 }
             }
             
@@ -228,6 +294,10 @@ export class WebviewGenerator {
             statusBadge.textContent = 'Running';
             statusBadge.className = 'gradient-primary px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider text-white animate-pulse-slow shadow-lg';
             progressBar.classList.remove('hidden');
+            
+            // Show skeletons and hide containers
+            coverageSkeleton.classList.remove('hidden');
+            uncoveredSkeleton.classList.remove('hidden');
             coverageContainer.classList.add('hidden');
             uncoveredContainer.classList.add('hidden');
             
@@ -297,6 +367,10 @@ export class WebviewGenerator {
                     rerunBtn.classList.remove('hidden');
                     cancelBtn.classList.add('hidden');
                     
+                    // Hide skeletons
+                    coverageSkeleton.classList.add('hidden');
+                    uncoveredSkeleton.classList.add('hidden');
+                    
                     if (message.success) {
                         statusBadge.textContent = 'Passed ✓';
                         statusBadge.className = 'gradient-success px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wide text-white';
@@ -310,6 +384,10 @@ export class WebviewGenerator {
                     
                     if (message.coverage) {
                         showCoverage(message.coverage, message.sourceFile);
+                    } else {
+                        // If no coverage info, hide containers
+                        coverageContainer.classList.add('hidden');
+                        uncoveredContainer.classList.add('hidden');
                     }
                     saveState();
                     break;
@@ -362,6 +440,10 @@ export class WebviewGenerator {
                 return;
             }
             
+            // Update title with count
+            const titleElement = document.getElementById('uncovered-title');
+            titleElement.textContent = \`Uncovered Lines(\${lines.length})\`;
+            
             uncoveredContainer.classList.remove('hidden');
             uncoveredContainer.classList.add('animate-in', 'slide-in-from-bottom-4', 'duration-500');
 
@@ -389,6 +471,24 @@ export class WebviewGenerator {
                 setTimeout(() => textSpan.textContent = originalText, 2000);
             };
         }
+
+        // Scroll to Top Functionality
+        const scrollToTopBtn = document.getElementById('scroll-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.classList.add('show');
+            } else {
+                scrollToTopBtn.classList.remove('show');
+            }
+        });
+        
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
 
         function animateValue(id, start, end, duration, suffix = "") {
             const obj = document.getElementById(id);

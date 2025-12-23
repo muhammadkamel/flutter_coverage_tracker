@@ -2,13 +2,19 @@ import * as assert from 'assert';
 import { FlutterTestRunner } from '../../../../features/test-runner/FlutterTestRunner';
 import * as cp from 'child_process';
 import { EventEmitter } from 'events';
+import * as sinon from 'sinon';
+import * as fs from 'fs';
+import * as vscode from 'vscode';
+import { LcovParser } from '../../../../shared/coverage/LcovParser';
 
 suite('FlutterTestRunner Test Suite', () => {
     let runner: FlutterTestRunner;
     let mockChildProcess: any;
     let spawnCalledWith: any;
+    let sandbox: sinon.SinonSandbox;
 
     setup(() => {
+        sandbox = sinon.createSandbox();
         spawnCalledWith = undefined;
         mockChildProcess = new EventEmitter();
         mockChildProcess.stdout = new EventEmitter();
@@ -23,6 +29,10 @@ suite('FlutterTestRunner Test Suite', () => {
 
         // @ts-ignore
         runner = new FlutterTestRunner(mockSpawn);
+    });
+
+    teardown(() => {
+        sandbox.restore();
     });
 
     test('run() spawns flutter test process', async () => {
@@ -64,9 +74,6 @@ suite('FlutterTestRunner Test Suite', () => {
         assert.ok(killed);
     });
 
-    // Note: Parsing coverage logic would ideally use a mocked fs and lcov parser,
-    // but for unit testing the Runner's process handling, checking completion with exit code is sufficient.
-
     test('emits complete event on process exit', (done) => {
         runner.onTestComplete((result) => {
             assert.strictEqual(result.success, true);
@@ -85,5 +92,68 @@ suite('FlutterTestRunner Test Suite', () => {
 
         runner.run('/path/to/test.dart', '/root');
         mockChildProcess.emit('close', 1);
+    });
+
+    test('emits complete event on cancellation (null code)', (done) => {
+        runner.onTestComplete((result) => {
+            assert.strictEqual(result.cancelled, true);
+            assert.strictEqual(result.success, false);
+            done();
+        });
+
+        runner.run('/path/to/test.dart', '/root');
+        mockChildProcess.emit('close', null);
+    });
+
+    test('parses coverage on success', (done) => {
+        const workspaceRoot = '/root';
+        const testFile = '/root/test/foo_test.dart';
+
+        sandbox.stub(fs, 'existsSync').returns(true);
+        sandbox.stub(LcovParser, 'parse').resolves({
+            overall: { linesFound: 10, linesHit: 10, percentage: 100 },
+            files: [{ file: 'lib/foo.dart', linesFound: 10, linesHit: 10, percentage: 100, uncoveredLines: [] }]
+        });
+
+        // Mock workspace config
+        sandbox.stub(vscode.workspace, 'getConfiguration').returns({
+            get: (key: string) => 'coverage/lcov.info',
+            has: () => true,
+            inspect: () => undefined,
+            update: () => Promise.resolve()
+        } as any);
+
+        runner.onTestComplete((result) => {
+            assert.strictEqual(result.success, true);
+            assert.ok(result.coverage);
+            assert.strictEqual(result.coverage?.percentage, 100);
+            done();
+        });
+
+        runner.run(testFile, workspaceRoot);
+        mockChildProcess.emit('close', 0);
+    });
+
+    test('handles LcovParser error gracefully', (done) => {
+        const workspaceRoot = '/root';
+        const testFile = '/root/test/foo_test.dart';
+
+        sandbox.stub(fs, 'existsSync').returns(true);
+        sandbox.stub(LcovParser, 'parse').rejects(new Error('Parse error'));
+
+        // Mock workspace config
+        sandbox.stub(vscode.workspace, 'getConfiguration').returns({
+            get: (key: string) => 'coverage/lcov.info'
+        } as any);
+
+        runner.onTestOutput((output) => {
+            if (output.includes('[Error] Failed to parse coverage')) {
+                assert.ok(true);
+                done();
+            }
+        });
+
+        runner.run(testFile, workspaceRoot);
+        mockChildProcess.emit('close', 0);
     });
 });

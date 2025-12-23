@@ -134,11 +134,52 @@ suite('Webview Test Suite', () => {
         assert.ok(content.includes('previousState.isWatching'), 'Should restore watch state from persistent storage');
     });
 
-    test('getWebviewContent resets watch state on rerun click', () => {
+    test('getWebviewContent includes skeleton loader elements', () => {
+        const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
+
+        assert.ok(content.includes('id="coverage-skeleton"'), 'Should include coverage skeleton');
+        assert.ok(content.includes('id="uncovered-skeleton"'), 'Should include uncovered lines skeleton');
+        assert.ok(content.includes('animate-pulse'), 'Should use Tailwind pulse animation');
+    });
+
+    test('getWebviewContent hides actual coverage initially', () => {
+        const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
+        assert.ok(content.includes('id="coverage-container" class="hidden"'), 'Actual coverage container should be hidden initially');
+    });
+
+    test('getWebviewContent resets UI state on rerun click including skeletons', () => {
         const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
 
         assert.ok(content.includes('rerunBtn.onclick'), 'Should have rerun click handler');
-        assert.ok(content.includes('isWatching = false'), 'Should reset isWatching on rerun');
-        assert.ok(content.includes('watchBtn.querySelector(\'span\').textContent = \'Watch\''), 'Should reset button text on rerun');
+        assert.ok(content.includes('coverageSkeleton.classList.remove(\'hidden\')'), 'Should show coverage skeleton on rerun');
+        assert.ok(content.includes('coverageContainer.classList.add(\'hidden\')'), 'Should hide coverage container on rerun');
+    });
+
+    test('getWebviewContent includes uncovered lines count in title', () => {
+        const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
+
+        assert.ok(content.includes('id="uncovered-title"'), 'Should include uncovered title element with ID');
+        assert.ok(content.includes('Uncovered Lines'), 'Should include base title text');
+    });
+
+    test('getWebviewContent updates uncovered lines title with count', () => {
+        const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
+
+        assert.ok(content.includes('document.getElementById'), 'Should get uncovered title element');
+        assert.ok(content.includes('Uncovered Lines('), 'Should update title with count in parentheses');
+        assert.ok(content.includes('lines.length'), 'Should use lines.length for count');
+    });
+
+    test('getWebviewContent includes scroll-to-top button', () => {
+        const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
+
+        assert.ok(content.includes('id="scroll-to-top"'), 'Should include scroll-to-top button');
+        assert.ok(content.includes('Scroll to top'), 'Should include scroll-to-top title attribute');
+        assert.ok(content.includes("window.addEventListener('scroll'"), 'Should include scroll event listener');
+        assert.ok(content.includes('window.scrollTo'), 'Should include scrollTo call');
+        assert.ok(content.includes("behavior: 'smooth'"), 'Should use smooth scroll behavior');
+        assert.ok(content.includes('window.pageYOffset > 300'), 'Should show button after scrolling 300px');
+        assert.ok(content.includes('#scroll-to-top'), 'Should include scroll-to-top button styles');
+        assert.ok(content.includes('position: fixed'), 'Should use fixed positioning');
     });
 });

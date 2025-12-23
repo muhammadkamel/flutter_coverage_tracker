@@ -78,5 +78,17 @@ end_of_record
         assert.strictEqual(result.overall.linesHit, 3);
         assert.strictEqual(result.overall.percentage, 60.00);
     });
+
+    test('Handles LF=0 case', async () => {
+        const content = `
+SF:lib/empty.dart
+LF:0
+LH:0
+end_of_record
+`;
+        fs.writeFileSync(tempFile, content);
+        const result = await LcovParser.parse(tempFile);
+        assert.strictEqual(result.files[0].percentage, 0);
+    });
 });
 

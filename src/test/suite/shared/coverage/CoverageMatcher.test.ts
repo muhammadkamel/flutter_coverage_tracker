@@ -1,13 +1,13 @@
 import * as assert from 'assert';
-import { deduceSourceFilePath, findCoverageEntry, normalizePath } from '../../coverageMatching';
-import { FileCoverageData } from '../../coverageParser';
+import { CoverageMatcher } from '../../../../shared/coverage/CoverageMatcher';
+import { FileCoverageData } from '../../../../shared/coverage/Coverage';
 import * as path from 'path';
 
 suite('Coverage Matching Test Suite', () => {
 
     test('normalizePath should use forward slashes', () => {
-        assert.strictEqual(normalizePath('foo\\bar\\baz'), 'foo/bar/baz');
-        assert.strictEqual(normalizePath('foo/bar/baz'), 'foo/bar/baz');
+        assert.strictEqual(CoverageMatcher.normalizePath('foo\\bar\\baz'), 'foo/bar/baz');
+        assert.strictEqual(CoverageMatcher.normalizePath('foo/bar/baz'), 'foo/bar/baz');
     });
 
     test('deduceSourceFilePath should map test files to lib files', () => {
@@ -15,7 +15,7 @@ suite('Coverage Matching Test Suite', () => {
 
         // Standard case
         assert.strictEqual(
-            deduceSourceFilePath(path.join(workspaceRoot, 'test', 'features', 'login_test.dart'), workspaceRoot),
+            CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'features', 'login_test.dart'), workspaceRoot),
             'lib/features/login.dart'
         );
 
@@ -24,13 +24,13 @@ suite('Coverage Matching Test Suite', () => {
 
         // Not a test file
         assert.strictEqual(
-            deduceSourceFilePath('/my/workspace/lib/main.dart', workspaceRoot),
+            CoverageMatcher.deduceSourceFilePath('/my/workspace/lib/main.dart', workspaceRoot),
             undefined
         );
 
         // Test file not ending in _test.dart
         assert.strictEqual(
-            deduceSourceFilePath('/my/workspace/test/setup.dart', workspaceRoot),
+            CoverageMatcher.deduceSourceFilePath('/my/workspace/test/setup.dart', workspaceRoot),
             undefined
         );
     });
@@ -41,7 +41,7 @@ suite('Coverage Matching Test Suite', () => {
             { file: 'lib/foo.dart', linesFound: 10, linesHit: 5, percentage: 50, uncoveredLines: [] }
         ];
 
-        const result = findCoverageEntry('lib/foo.dart', files, workspaceRoot);
+        const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
         assert.ok(result);
         assert.strictEqual(result?.matchType, 'exact');
         assert.strictEqual(result?.fileCoverage.file, 'lib/foo.dart');
@@ -53,7 +53,7 @@ suite('Coverage Matching Test Suite', () => {
             { file: '/root/lib/foo.dart', linesFound: 10, linesHit: 5, percentage: 50, uncoveredLines: [] }
         ];
 
-        const result = findCoverageEntry('lib/foo.dart', files, workspaceRoot);
+        const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
         assert.ok(result);
         assert.strictEqual(result?.matchType, 'exact');
         assert.strictEqual(result?.normalizedPath, 'lib/foo.dart');
@@ -66,7 +66,7 @@ suite('Coverage Matching Test Suite', () => {
             { file: 'packages/my_app/lib/foo.dart', linesFound: 10, linesHit: 5, percentage: 50, uncoveredLines: [] }
         ];
 
-        const result = findCoverageEntry('lib/foo.dart', files, workspaceRoot);
+        const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
         assert.ok(result);
         assert.strictEqual(result?.matchType, 'suffix');
     });
@@ -77,7 +77,7 @@ suite('Coverage Matching Test Suite', () => {
             { file: 'weird/path/structure/foo.dart', linesFound: 10, linesHit: 5, percentage: 50, uncoveredLines: [] }
         ];
 
-        const result = findCoverageEntry('lib/foo.dart', files, workspaceRoot);
+        const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
         assert.ok(result);
         assert.strictEqual(result?.matchType, 'basename');
     });
@@ -88,7 +88,7 @@ suite('Coverage Matching Test Suite', () => {
             { file: 'lib/bar.dart', linesFound: 10, linesHit: 5, percentage: 50, uncoveredLines: [] }
         ];
 
-        const result = findCoverageEntry('lib/foo.dart', files, workspaceRoot);
+        const result = CoverageMatcher.findCoverageEntry('lib/foo.dart', files, workspaceRoot);
         assert.strictEqual(result, undefined);
     });
 });

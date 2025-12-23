@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { parseLcovFile } from './coverageParser';
-import { deduceSourceFilePath, findCoverageEntry } from './coverageMatching';
-import { resolveTestFilePath } from './utils';
-import * as cp from 'child_process';
-import { getWebviewContent } from './webview';
+import { FileSystemUtils } from './features/test-runner/utils/FileSystemUtils';
+import { LcovParser } from './shared/coverage/LcovParser';
+import { FlutterTestRunner } from './features/test-runner/FlutterTestRunner';
+import { VsCodeFileWatcher } from './features/test-runner/VsCodeFileWatcher';
+import { CoverageOrchestrator } from './features/test-runner/CoverageOrchestrator';
+import { WebviewGenerator } from './features/test-runner/WebviewGenerator';
+import { CoverageMatcher } from './shared/coverage/CoverageMatcher';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -20,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Initial Update
     updateCoverage();
 
-    // Watch for file changes
+    // Watch for file changes for Status Bar
     const coverageFilePath = getCoverageFilePath();
     if (coverageFilePath) {
         const watcher = vscode.workspace.createFileSystemWatcher(coverageFilePath);
@@ -31,6 +33,11 @@ export function activate(context: vscode.ExtensionContext) {
         });
         context.subscriptions.push(watcher);
     }
+
+    // Dependencies
+    const testRunner = new FlutterTestRunner();
+    const fileWatcher = new VsCodeFileWatcher();
+    const orchestrator = new CoverageOrchestrator(testRunner, fileWatcher);
 
     // Command: Run Related Test
     let runTestDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runRelatedTest', async (uri?: vscode.Uri) => {
@@ -46,7 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const currentFile = targetUri.fsPath;
         if (!currentFile.endsWith('.dart')) {
-            vscode.window.showErrorMessage('Current file is not a Dart file.');
+            vscode.window.showErrorMessage('Current file is not in a Dart file.');
             return;
         }
 
@@ -57,7 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const workspaceRoot = workspaceFolder.uri.fsPath;
-        const testFilePath = resolveTestFilePath(currentFile, workspaceRoot);
+        const testFilePath = FileSystemUtils.resolveTestFilePath(currentFile, workspaceRoot);
 
         if (fs.existsSync(testFilePath)) {
             const fileName = path.basename(testFilePath);
@@ -71,7 +78,32 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             );
 
-            panel.webview.html = getWebviewContent(fileName, context.extensionUri);
+            const styleUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'out', 'webview.css'));
+            panel.webview.html = WebviewGenerator.getWebviewContent(fileName, styleUri);
+
+            // Wire up events
+            const outputDisposable = testRunner.onTestOutput(out => {
+                panel.webview.postMessage({ type: 'log', value: out });
+            });
+
+            const completeDisposable = testRunner.onTestComplete(result => {
+                if (result.success) {
+                    vscode.window.showInformationMessage(`Test Passed: ${path.basename(testFilePath)}`);
+                    updateCoverage(); // Update status bar
+                } else if (result.cancelled) {
+                    vscode.window.showInformationMessage(`Test Cancelled: ${path.basename(testFilePath)}`);
+                } else {
+                    vscode.window.showErrorMessage(`Test Failed: ${path.basename(testFilePath)}`);
+                }
+
+                panel.webview.postMessage({
+                    type: 'finished',
+                    success: result.success,
+                    cancelled: result.cancelled,
+                    coverage: result.coverage,
+                    sourceFile: result.sourceFile
+                });
+            });
 
             // Handle messages from webview
             panel.webview.onDidReceiveMessage(
@@ -87,16 +119,26 @@ export function activate(context: vscode.ExtensionContext) {
                             editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
                         }
                     } else if (message.type === 'rerun') {
-                        // Re-run the test
-                        runTest(panel, testFilePath, workspaceRoot);
+                        orchestrator.runTest(testFilePath, workspaceRoot);
+                    } else if (message.type === 'cancel') {
+                        orchestrator.cancelTest();
+                    } else if (message.type === 'toggle-watch') {
+                        orchestrator.toggleWatch(message.enable);
                     }
                 },
                 undefined,
                 context.subscriptions
             );
 
+            panel.onDidDispose(() => {
+                orchestrator.toggleWatch(false);
+                orchestrator.cancelTest();
+                outputDisposable.dispose();
+                completeDisposable.dispose();
+            });
+
             // Run the test initially
-            runTest(panel, testFilePath, workspaceRoot);
+            orchestrator.runTest(testFilePath, workspaceRoot);
 
         } else {
             vscode.window.showErrorMessage(`Could not find related test file at: ${testFilePath}`);
@@ -104,78 +146,6 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(runTestDisposable);
-
-    // Function to run test and stream output to webview
-    function runTest(panel: vscode.WebviewPanel, testFilePath: string, workspaceRoot: string) {
-        // Using shell: true for better compatibility with PATH
-        const child = cp.spawn('flutter', ['test', '--coverage', testFilePath], { cwd: workspaceRoot, shell: true });
-
-        child.stdout.on('data', (data) => {
-            panel.webview.postMessage({ type: 'log', value: data.toString() });
-        });
-
-        child.stderr.on('data', (data) => {
-            panel.webview.postMessage({ type: 'log', value: data.toString() });
-        });
-
-        child.on('close', async (code) => {
-            const success = code === 0;
-            let coverageData = null;
-            let targetSourceSuffix = '';
-
-            if (success) {
-                // refresh global coverage first
-                updateCoverage();
-
-                const config = vscode.workspace.getConfiguration('flutterCoverage');
-                const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
-                const coverageFile = path.join(workspaceRoot, relativePath);
-
-                if (fs.existsSync(coverageFile)) {
-                    try {
-                        const result = await parseLcovFile(coverageFile);
-
-                        targetSourceSuffix = deduceSourceFilePath(testFilePath, workspaceRoot) || '';
-
-                        // Log diagnostic info to Webview
-                        panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Test Run Completed.` });
-                        panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Test File: ${testFilePath}` });
-                        panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Looking for coverage of: ${targetSourceSuffix}` });
-
-                        if (targetSourceSuffix) {
-                            const matchResult = findCoverageEntry(targetSourceSuffix, result.files, workspaceRoot);
-
-                            if (matchResult) {
-                                coverageData = matchResult.fileCoverage;
-                                panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Found via ${matchResult.matchType} match: ${matchResult.normalizedPath}` });
-                                panel.webview.postMessage({ type: 'log', value: `[Coverage Info] Match successful! Coverage: ${coverageData.percentage}%` });
-                            } else {
-                                panel.webview.postMessage({ type: 'log', value: `[Coverage Warning] No specific coverage found for ${targetSourceSuffix}. Displaying overall project coverage.` });
-                                coverageData = result.overall;
-                            }
-                        } else {
-                            panel.webview.postMessage({ type: 'log', value: `[Coverage Warning] Could not determine source file from path. Displaying overall project coverage.` });
-                            coverageData = result.overall;
-                        }
-
-                    } catch (e) {
-                        console.error('Failed to parse coverage', e);
-                        panel.webview.postMessage({ type: 'log', value: `[Coverage Error] Failed to parse lcov.info: ${e}` });
-                    }
-                } else {
-                    panel.webview.postMessage({ type: 'log', value: `[Coverage Warning] Coverage file not found at: ${relativePath}` });
-                    panel.webview.postMessage({ type: 'log', value: `[Coverage Warning] Make sure 'flutter test --coverage' generated the file.` });
-                }
-            }
-
-            panel.webview.postMessage({
-                type: 'finished',
-                success: success,
-                coverage: coverageData,
-                sourceFile: targetSourceSuffix || ''
-            });
-        });
-    }
 }
 
 function getCoverageFilePath(): string | undefined {
@@ -203,7 +173,7 @@ async function updateCoverage() {
 
     if (fs.existsSync(filePath)) {
         try {
-            const data = await parseLcovFile(filePath);
+            const data = await LcovParser.parse(filePath);
             statusBarItem.text = `$(check) Cov: ${data.overall.percentage}%`;
             statusBarItem.tooltip = `Lines Hit: ${data.overall.linesHit} / ${data.overall.linesFound}`;
             statusBarItem.show();
@@ -219,3 +189,5 @@ async function updateCoverage() {
 }
 
 export function deactivate() { }
+
+

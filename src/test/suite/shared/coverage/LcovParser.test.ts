@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import { parseLcovFile } from '../../coverageParser';
+import { LcovParser } from '../../../../shared/coverage/LcovParser';
 import * as fs from 'fs';
 import * as os from 'os';
 
@@ -39,7 +39,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 4);
         assert.strictEqual(result.overall.linesHit, 3);
         assert.strictEqual(result.overall.percentage, 75.00);
@@ -47,7 +47,7 @@ end_of_record
 
     test('Parses empty lcov file correctly', async () => {
         fs.writeFileSync(tempFile, '');
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 0);
         assert.strictEqual(result.overall.linesHit, 0);
         assert.strictEqual(result.overall.percentage, 0);
@@ -55,7 +55,7 @@ end_of_record
 
     test('Handles file read error', async () => {
         try {
-            await parseLcovFile('non_existent_file.info');
+            await LcovParser.parse('non_existent_file.info');
             assert.fail('Should have thrown an error');
         } catch (err) {
             assert.ok(err);
@@ -73,7 +73,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 5);
         assert.strictEqual(result.overall.linesHit, 3);
         assert.strictEqual(result.overall.percentage, 60.00);

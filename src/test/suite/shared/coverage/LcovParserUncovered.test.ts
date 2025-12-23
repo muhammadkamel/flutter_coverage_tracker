@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { parseLcovFile } from '../../coverageParser';
+import { LcovParser } from '../../../../shared/coverage/LcovParser';
 
 suite('Coverage Parser - Uncovered Lines Test Suite', () => {
     let tempFile: string;
@@ -31,7 +31,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.files.length, 1);
         assert.strictEqual(result.files[0].uncoveredLines.length, 3);
         assert.deepStrictEqual(result.files[0].uncoveredLines, [2, 4, 5]);
@@ -49,7 +49,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.files[0].uncoveredLines.length, 0);
         assert.strictEqual(result.files[0].percentage, 100);
     });
@@ -68,7 +68,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.deepStrictEqual(result.files[0].uncoveredLines, [3, 10, 15]);
     });
 
@@ -90,7 +90,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.files.length, 2);
         assert.deepStrictEqual(result.files[0].uncoveredLines, [2]);
         assert.deepStrictEqual(result.files[1].uncoveredLines, [10, 12]);
@@ -110,7 +110,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.deepStrictEqual(result.files[0].uncoveredLines, [2, 4]);
     });
 
@@ -127,7 +127,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         // Should only parse valid DA lines
         assert.deepStrictEqual(result.files[0].uncoveredLines, [2]);
     });
@@ -150,7 +150,7 @@ end_of_record
 `;
         fs.writeFileSync(tempFile, content);
 
-        const result = await parseLcovFile(tempFile);
+        const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 5);
         assert.strictEqual(result.overall.linesHit, 2);
         assert.strictEqual(result.overall.percentage, 40.00);

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import { resolveTestFilePath } from '../../utils';
+import { FileSystemUtils } from '../../../../../features/test-runner/utils/FileSystemUtils';
 
 suite('Utils Test Suite', () => {
     const isWindows = process.platform === 'win32';
@@ -10,7 +10,7 @@ suite('Utils Test Suite', () => {
         const input = path.join(workspaceRoot, 'lib', 'feature', 'foo.dart');
         const expected = path.join(workspaceRoot, 'test', 'feature', 'foo_test.dart');
 
-        const result = resolveTestFilePath(input, workspaceRoot);
+        const result = FileSystemUtils.resolveTestFilePath(input, workspaceRoot);
         assert.strictEqual(result, expected);
     });
 
@@ -19,7 +19,7 @@ suite('Utils Test Suite', () => {
         // Expect 'src' to be stripped from the test path
         const expected = path.join(workspaceRoot, 'test', 'feature', 'foo_test.dart');
 
-        const result = resolveTestFilePath(input, workspaceRoot);
+        const result = FileSystemUtils.resolveTestFilePath(input, workspaceRoot);
         assert.strictEqual(result, expected);
     });
 
@@ -27,7 +27,7 @@ suite('Utils Test Suite', () => {
         const input = path.join(workspaceRoot, 'test', 'feature', 'foo_test.dart');
         const expected = input;
 
-        const result = resolveTestFilePath(input, workspaceRoot);
+        const result = FileSystemUtils.resolveTestFilePath(input, workspaceRoot);
         assert.strictEqual(result, expected);
     });
 
@@ -35,7 +35,7 @@ suite('Utils Test Suite', () => {
         const input = path.join(workspaceRoot, 'main.dart');
         const expected = path.join(workspaceRoot, 'test', 'main_test.dart');
 
-        const result = resolveTestFilePath(input, workspaceRoot);
+        const result = FileSystemUtils.resolveTestFilePath(input, workspaceRoot);
         assert.strictEqual(result, expected);
     });
 });

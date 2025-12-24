@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { WebviewComponents } from './WebviewComponents';
 
 export class MultiTestWebviewGenerator {
     public static getWebviewContent(folderName: string, styleSrc: vscode.Uri): string {
@@ -34,7 +35,7 @@ export class MultiTestWebviewGenerator {
 
         .scrollbox::-webkit-scrollbar { width: 6px; }
         .scrollbox::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        .scrollbox::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        ${WebviewComponents.getScrollToTopStyles()}
     </style>
 </head>
 <body class="bg-vscode-editor-bg text-vscode-fg p-6 font-sans antialiased selection:bg-indigo-500/30">
@@ -105,6 +106,7 @@ export class MultiTestWebviewGenerator {
                                 <th class="pb-3 font-semibold">File Name</th>
                                 <th class="pb-3 font-semibold text-center">Status</th>
                                 <th class="pb-3 font-semibold text-right">Coverage</th>
+                                <th class="pb-3 font-semibold text-center">Uncovered</th>
                             </tr>
                         </thead>
                         <tbody id="file-list-body" class="divide-y divide-vscode-border/10">
@@ -135,6 +137,8 @@ export class MultiTestWebviewGenerator {
         </div>
     </div>
 
+${WebviewComponents.getScrollToTopButton()}
+
     <script>
         const vscode = acquireVsCodeApi();
         const outputDiv = document.getElementById('output');
@@ -164,7 +168,8 @@ export class MultiTestWebviewGenerator {
                 
                 case 'init-dashboard':
                     tests = message.files.map(f => ({ 
-                        name: f, 
+                        name: f.name,
+                        path: f.path,
                         status: 'pending', 
                         coverage: null 
                     }));
@@ -184,7 +189,6 @@ export class MultiTestWebviewGenerator {
                     }
 
                     if (message.results) {
-                        // message.results is an array of { file, success, coverage }
                         tests = message.results;
                         updateUI();
                     }
@@ -206,6 +210,38 @@ export class MultiTestWebviewGenerator {
              statusBadge.textContent = 'Cancelling...';
         };
 
+        function toggleUncovered(testId) {
+            const row = document.getElementById(\`uncovered-\${testId}\`);
+            if (row) {
+                row.classList.toggle('hidden');
+            }
+        }
+        
+        function navigateToLine(sourceFile, line) {
+            vscode.postMessage({
+                type: 'navigateToLine',
+                file: sourceFile,
+                line: line
+            });
+        }
+        
+        function navigateToTestFile(testPath) {
+            vscode.postMessage({
+                type: 'navigateToTestFile',
+                filePath: testPath
+            });
+        }
+        
+        function copyLines(testId, lines) {
+            navigator.clipboard.writeText(lines.join(', '));
+            const btn = event.target.closest('button');
+            const originalText = btn.querySelector('span').textContent;
+            btn.querySelector('span').textContent = 'Copied!';
+            setTimeout(() => {
+                btn.querySelector('span').textContent = originalText;
+            }, 2000);
+        }
+        
         function updateUI() {
             totalTestsEl.textContent = tests.length;
             const passed = tests.filter(t => t.success).length;
@@ -228,9 +264,13 @@ export class MultiTestWebviewGenerator {
                 const statusLabel = test.status === 'pending' ? 'Waiting' : 
                                    test.success ? 'Passed' : 'Failed';
 
+                const uncoveredLines = test.coverage?.uncoveredLines || [];
+                const hasUncovered = uncoveredLines.length > 0;
+                const testId = test.name.replace(/[^a-zA-Z0-9]/g, '-');
+
                 row.innerHTML = \`
                     <td class="py-4 font-medium text-sm truncate max-w-xs" title="\${test.name}">
-                        \${test.name}
+                        <span class="cursor-pointer hover:text-blue-400 transition-colors" onclick="navigateToTestFile('\${test.path}')">\${test.name}</span>
                     </td>
                     <td class="py-4 text-center">
                         <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider \${statusClass}">
@@ -240,10 +280,62 @@ export class MultiTestWebviewGenerator {
                     <td class="py-4 text-right font-mono text-sm">
                         \${test.coverage ? \`\${test.coverage.percentage}%\` : '--'}
                     </td>
+                    <td class="py-4 text-center">
+                        \${hasUncovered ? \`<button class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold hover:bg-red-500/40 transition-colors" onclick="toggleUncovered('\${testId}')">\${uncoveredLines.length} lines</button>\` : '<span class="text-xs opacity-40">None</span>'}
+                    </td>
                 \`;
                 fileListBody.appendChild(row);
+                
+                // Add expandable uncovered lines row if there are uncovered lines
+                if (hasUncovered && test.sourceFile) {
+                    const detailRow = document.createElement('tr');
+                    detailRow.id = \`uncovered-\${testId}\`;
+                    detailRow.className = 'hidden';
+                    
+                    const linesHtml = uncoveredLines.map(line => 
+                        \`<div class="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs font-mono border border-red-500/30 cursor-pointer hover:bg-red-500/40 transition-colors clickable" onclick="navigateToLine('\${test.sourceFile}', \${line})">\${line}</div>\`
+                    ).join('');
+                    
+                    detailRow.innerHTML = \`
+                        <td colspan="4" class="py-2 px-4 bg-black/20">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-1">
+                                    <div class="text-xs font-semibold mb-2 opacity-70">🎯 Uncovered Lines (\${uncoveredLines.length}):</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        \${linesHtml}
+                                    </div>
+                                </div>
+                                <button class="px-3 py-1 bg-vscode-button hover:bg-vscode-button-hover text-white rounded text-xs font-semibold transition-all flex items-center gap-1" onclick="copyLines('\${testId}', [\${uncoveredLines.join(',')}])" title="Copy uncovered lines">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                        </td>
+                    \`;
+                    fileListBody.appendChild(detailRow);
+                }
             });
         }
+        
+        // Scroll to Top Functionality
+        const scrollToTopBtn = document.getElementById('scroll-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.classList.add('show');
+            } else {
+                scrollToTopBtn.classList.remove('show');
+            }
+        });
+        
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
     </script>
 </body>
 </html>`;

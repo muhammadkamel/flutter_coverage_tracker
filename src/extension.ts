@@ -195,7 +195,10 @@ export function activate(context: vscode.ExtensionContext) {
         const testFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(testFolderPath, '**/*_test.dart'));
         panel.webview.postMessage({
             type: 'init-dashboard',
-            files: testFiles.map(f => path.relative(testFolderPath, f.fsPath))
+            files: testFiles.map(f => ({
+                name: path.relative(testFolderPath, f.fsPath),
+                path: f.fsPath
+            }))
         });
 
         // Run tests
@@ -225,7 +228,8 @@ export function activate(context: vscode.ExtensionContext) {
                             folderResults.push({
                                 name: path.relative(testFolderPath, testFile.fsPath),
                                 success: testSuccess,
-                                coverage: match ? match.fileCoverage : null
+                                coverage: match ? match.fileCoverage : null,
+                                sourceFile: sourceFile
                             });
                         }
                     }
@@ -243,11 +247,27 @@ export function activate(context: vscode.ExtensionContext) {
             updateCoverage(); // Update status bar
         });
 
-        panel.webview.onDidReceiveMessage(message => {
+        panel.webview.onDidReceiveMessage(async message => {
             if (message.type === 'rerun') {
                 testRunner.run(testFolderPath, workspaceRoot);
             } else if (message.type === 'cancel') {
                 testRunner.cancel();
+            } else if (message.type === 'navigateToLine') {
+                const filePath = path.join(workspaceRoot, message.file);
+                if (fs.existsSync(filePath)) {
+                    const doc = await vscode.workspace.openTextDocument(filePath);
+                    const editor = await vscode.window.showTextDocument(doc);
+                    const line = message.line - 1; // Convert to 0-indexed
+                    const position = new vscode.Position(line, 0);
+                    editor.selection = new vscode.Selection(position, position);
+                    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                }
+            } else if (message.type === 'navigateToTestFile') {
+                const filePath = message.filePath;
+                if (fs.existsSync(filePath)) {
+                    const doc = await vscode.workspace.openTextDocument(filePath);
+                    await vscode.window.showTextDocument(doc);
+                }
             }
         });
 

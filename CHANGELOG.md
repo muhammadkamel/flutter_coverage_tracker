@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.8.0] - 2025-12-24
+
+### Added
+
+- **Dashboard**: Uncovered lines display in multi-test folder dashboard
+  - Expandable rows showing uncovered line numbers for each test file
+  - Clickable line badges to navigate directly to uncovered lines in source files
+  - Copy button to copy all uncovered lines for each test
+  - Visual indicators with red badges and hover effects
+- **Navigation**: Clickable test file names in folder dashboard
+  - Click any test file name to open it in the editor
+  - Blue hover effect for better UX
+- **UI**: Scroll-to-top button in folder dashboard
+  - Floating button appears when scrolling past 300px
+  - Smooth scroll animation to top
+  - Gradient styling with hover effects
+- **Architecture**: Reusable WebviewComponents module
+  - Shared scroll-to-top button component
+  - Eliminates code duplication between single and folder test views
+  - 60+ lines of code reduced through component reuse
+
+### Improved
+
+- **Testing**: Increased test coverage to 92 tests (from 84)
+  - 8 new comprehensive tests for dashboard features
+  - Tests for uncovered lines display, navigation, and scroll functionality
+- **Code Quality**: Better maintainability through component extraction
+- **UX**: Consistent scroll-to-top behavior across all test views
+
 ## [0.6.0] - 2025-12-24
 
 ### Added

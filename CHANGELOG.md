@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.11.2] - 2025-12-24
+
+### Improved
+
+- **Branding**: Updated to flat UI icon design with "FCT" branding for better visibility
+
+---
+
+## [0.11.1] - 2025-12-24
+
+### Added
+
+- **Branding**: New professional extension icon featuring Flutter colors and coverage tracking elements
+
+---
+
+## [0.11.0] - 2025-12-24
+
+### Added
+
+- **Documentation**: Comprehensive README.md with features, installation, usage, and configuration guides
+- **Branding**: Professional extension icon featuring Flutter colors and coverage tracking elements
+- **Marketplace**: Enhanced VS Code marketplace presentation with icon and detailed documentation
+
+---
+
 ## [0.10.0] - 2025-12-24
 
 ### Added

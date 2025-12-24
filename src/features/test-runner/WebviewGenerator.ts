@@ -52,12 +52,14 @@ export class WebviewGenerator {
     <div class="max-w-4xl mx-auto space-y-6">
         
         <!-- Header -->
-        <div class="flex items-center justify-between mb-8 animate-in slide-in-from-top-4 duration-500">
-            <h1 class="text-3xl font-extrabold tracking-tight flex items-center gap-3">
-                <span class="text-3xl">🚀</span>
-                <span>${testFileName}</span>
-            </h1>
-            <div class="flex items-center gap-3">
+        <div class="flex items-center justify-between gap-6 mb-8 animate-in slide-in-from-top-4 duration-500">
+            <div class="flex-1 min-w-0">
+                <h1 class="text-3xl font-extrabold tracking-tight flex items-start gap-3">
+                    <span class="text-3xl flex-shrink-0">🚀</span>
+                    <span class="line-clamp-2 break-words overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${testFileName}</span>
+                </h1>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
                 <button id="cancel-btn" class="hidden px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-semibold transition-all flex items-center gap-2 shadow-md hover:shadow-lg" title="Cancel test">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>

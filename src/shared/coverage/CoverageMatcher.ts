@@ -16,20 +16,59 @@ export class CoverageMatcher {
     }
 
     /**
-     * Deduces the expected source file path from a test file path.
-     * e.g., 'test/foo_test.dart' -> 'lib/foo.dart'
+     * Deduces the expected source file path candidates from a test file path.
+     * e.g., 'test/foo_test.dart' -> ['lib/foo.dart']
+     *       'test/foo_impl_test.dart' -> ['lib/foo_impl.dart', 'lib/foo.dart']
      */
-    public static deduceSourceFilePath(testFilePath: string, workspaceRoot: string): string | undefined {
+    public static deduceSourceFilePath(testFilePath: string, workspaceRoot: string): string[] {
         const relativeTestPath = path.relative(workspaceRoot, testFilePath);
         const normalizedTestPath = this.normalizePath(relativeTestPath);
+        const candidates: string[] = [];
 
         if (normalizedTestPath.startsWith('test/')) {
             const stripPrefix = normalizedTestPath.substring(5); // remove 'test/'
             if (stripPrefix.endsWith('_test.dart')) {
-                return 'lib/' + stripPrefix.substring(0, stripPrefix.length - 10) + '.dart';
+                // Remove '_test.dart' to get the base logical path relative to 'test/'
+                // e.g. features/downloads/download_service_impl
+                let base = stripPrefix.substring(0, stripPrefix.length - 10);
+
+                // Add the direct match first: lib/features/downloads/download_service_impl.dart
+                candidates.push('lib/' + base + '.dart');
+
+                // Try progressively stripping suffixes starting with '_'
+                // We only modify the basename part, preserving the directory structure.
+                const dirname = path.dirname(base);
+                let basename = path.basename(base);
+
+                // Assuming dirname gives '.' if no dir, we need to be careful with joining back.
+                // But simplified: operate on 'base' string if we assume standard path structure.
+                // Better approach: find lastIndex of '_' and slice.
+
+                while (true) {
+                    const lastUnderscoreIndex = base.lastIndexOf('_');
+                    if (lastUnderscoreIndex === -1) {
+                        break;
+                    }
+
+                    // If underscore is part of a directory separator, stop stripping (e.g. features_new/login)
+                    // We only want to strip suffixes of the filename itself.
+                    // So we check if the underscore is after the last slash.
+                    const lastSlashIndex = base.lastIndexOf('/');
+                    if (lastUnderscoreIndex < lastSlashIndex) {
+                        break;
+                    }
+
+                    // Strip from last underscore
+                    base = base.substring(0, lastUnderscoreIndex);
+
+                    // Avoid empty base or invalid states, though logically likely fine.
+                    if (base.length > 0) {
+                        candidates.push('lib/' + base + '.dart');
+                    }
+                }
             }
         }
-        return undefined;
+        return candidates;
     }
 
     /**

@@ -14,24 +14,49 @@ suite('Coverage Matching Test Suite', () => {
         const workspaceRoot = '/my/workspace';
 
         // Standard case
-        assert.strictEqual(
+        assert.deepStrictEqual(
             CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'features', 'login_test.dart'), workspaceRoot),
-            'lib/features/login.dart'
+            ['lib/features/login.dart']
+        );
+
+        // Impl test case (recursive stripping)
+        // should return: _impl, _service (if path was features/downloads/download_service_impl)
+        // Wait, logic strips suffixes from base.
+        // download_service_impl -> download_service_impl.dart
+        //                       -> download_service.dart
+        //                       -> download.dart
+        assert.deepStrictEqual(
+            CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'features', 'downloads', 'download_service_impl_test.dart'), workspaceRoot),
+            [
+                'lib/features/downloads/download_service_impl.dart',
+                'lib/features/downloads/download_service.dart',
+                'lib/features/downloads/download.dart'
+            ]
+        );
+
+        // Another generic case: complex_name_v2_mock_test.dart
+        assert.deepStrictEqual(
+            CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'complex_name_v2_test.dart'), workspaceRoot),
+            [
+                'lib/complex_name_v2.dart',
+                'lib/complex_name.dart',
+                'lib/complex.dart'
+            ]
         );
 
         // We skip explicit Windows backslash test on Mac because path.relative won't handle it correctly.
         // The extension relies on `path.relative` working for the host OS.
 
         // Not a test file
-        assert.strictEqual(
+        assert.deepStrictEqual(
             CoverageMatcher.deduceSourceFilePath('/my/workspace/lib/main.dart', workspaceRoot),
-            undefined
+            []
         );
 
         // Test file not ending in _test.dart
-        assert.strictEqual(
+        assert.deepStrictEqual(
             CoverageMatcher.deduceSourceFilePath('/my/workspace/test/setup.dart', workspaceRoot),
-            undefined
+            []
         );
     });
 

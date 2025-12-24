@@ -217,10 +217,25 @@ export function activate(context: vscode.ExtensionContext) {
                 try {
                     const lcov = await LcovParser.parse(coverageFile);
                     for (const testFile of testFiles) {
-                        const sourceFile = CoverageMatcher.deduceSourceFilePath(testFile.fsPath, workspaceRoot);
-                        if (sourceFile) {
-                            const match = CoverageMatcher.findCoverageEntry(sourceFile, lcov.files, workspaceRoot);
+                        const sourceCandidates = CoverageMatcher.deduceSourceFilePath(testFile.fsPath, workspaceRoot);
+                        let sourceFile = undefined;
+                        let match = undefined;
 
+                        // Try each candidate
+                        for (const candidate of sourceCandidates) {
+                            match = CoverageMatcher.findCoverageEntry(candidate, lcov.files, workspaceRoot);
+                            if (match && match.fileCoverage) {
+                                sourceFile = candidate;
+                                break;
+                            }
+                        }
+
+                        // Fallback to first candidate if no match
+                        if (!sourceFile && sourceCandidates.length > 0) {
+                            sourceFile = sourceCandidates[0];
+                        }
+
+                        if (sourceFile) {
                             // Infer individual test success from coverage
                             // If coverage exists, test likely passed; otherwise failed
                             const testSuccess = match && match.fileCoverage ? true : false;
@@ -282,6 +297,38 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(runFolderTestsDisposable);
+    context.subscriptions.push(runFolderTestsDisposable);
+
+    // Command: Show Details (Status Bar Click)
+    let showDetailsDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.showDetails', async () => {
+        const config = vscode.workspace.getConfiguration('flutterCoverage');
+        const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
+
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) return;
+
+        const filePath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
+
+        if (fs.existsSync(filePath)) {
+            try {
+                const data = await LcovParser.parse(filePath);
+                const result = await vscode.window.showInformationMessage(
+                    `Coverage: ${data.overall.percentage}% (Hit: ${data.overall.linesHit} / ${data.overall.linesFound})`,
+                    'Open Report'
+                );
+
+                if (result === 'Open Report') {
+                    const doc = await vscode.workspace.openTextDocument(filePath);
+                    await vscode.window.showTextDocument(doc);
+                }
+            } catch (e) {
+                vscode.window.showErrorMessage('Failed to read coverage details.');
+            }
+        } else {
+            vscode.window.showWarningMessage('No coverage file found.');
+        }
+    });
+    context.subscriptions.push(showDetailsDisposable);
 }
 
 function getCoverageFilePath(): string | undefined {

@@ -52,21 +52,22 @@ export class FlutterTestRunner implements ITestRunner {
                 if (fs.existsSync(coverageFile)) {
                     try {
                         const result = await LcovParser.parse(coverageFile);
-                        sourceFile = CoverageMatcher.deduceSourceFilePath(testFilePath, workspaceRoot);
+                        const sourceCandidates = CoverageMatcher.deduceSourceFilePath(testFilePath, workspaceRoot);
 
-                        if (sourceFile) {
-                            // We fire an event with the result. Determining the specific coverage match logic
-                            // can ideally happen here OR in the application service.
-                            // To keep Runner distinct, let's do the matching here as part of "Running and getting result"
-                            // or just return the raw LCOV and let simpler logic handle it.
-                            // But since we want "File Coverage", let's match it here.
-                            const matchResult = CoverageMatcher.findCoverageEntry(sourceFile, result.files, workspaceRoot);
-                            if (matchResult) {
+                        // Try each candidate until we find one with coverage
+                        for (const candidate of sourceCandidates) {
+                            const matchResult = CoverageMatcher.findCoverageEntry(candidate, result.files, workspaceRoot);
+                            if (matchResult && matchResult.fileCoverage) {
                                 coverageData = matchResult.fileCoverage;
-                            } else {
-                                // Fallback to overall? The interface allows optional.
-                                // Let's stick to the behavior of null means "no specific found"
+                                sourceFile = candidate; // Use the one that matched
+                                break;
                             }
+                        }
+
+                        // If no match found but we had candidates, default to the first candidate as the "intended" source
+                        // even if we have no coverage data for it.
+                        if (!sourceFile && sourceCandidates.length > 0) {
+                            sourceFile = sourceCandidates[0];
                         }
                     } catch (e) {
                         this._onTestOutput.fire(`[Error] Failed to parse coverage: ${e}\n`);

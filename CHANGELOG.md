@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.0] - 2025-12-24
+
+### Added
+
+- **Dashboard**: Folder Structure View
+  - Tested files are now organized in a hierarchical folder tree instead of a flat list.
+  - Expandable/collapsible folders with visual indicators (📁/📂).
+  - Aggregated status dots for folders (Green = All Passed, Red = Any Failed).
+  - Improved readability for large test suites.
+
 ## [0.9.1] - 2025-12-24
 
 ### Fixed

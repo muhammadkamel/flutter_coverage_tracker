@@ -27,6 +27,7 @@ const vscode = {
         activeTextEditor: undefined as any,
         showErrorMessage: () => { },
         showInformationMessage: () => { },
+        showSaveDialog: () => Promise.resolve(undefined),
         showTextDocument: () => Promise.resolve({ selection: {} }),
         createWebviewPanel: () => ({
             webview: {

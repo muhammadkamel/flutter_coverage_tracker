@@ -14,11 +14,20 @@ export interface TestResultData {
 }
 
 export class UncoveredLinesExporter {
-    public static async export(data: TestResultData[], defaultFileName: string): Promise<void> {
+    public static async export(data: TestResultData[], defaultFileName: string, basePath?: string): Promise<void> {
         const content = this.generateMarkdown(data);
 
+        let defaultUri: vscode.Uri;
+        if (basePath) {
+            defaultUri = vscode.Uri.file(path.join(basePath, defaultFileName + '_uncovered_report.md'));
+        } else if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            defaultUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, defaultFileName + '_uncovered_report.md');
+        } else {
+            defaultUri = vscode.Uri.file(defaultFileName + '_uncovered_report.md');
+        }
+
         const uri = await vscode.window.showSaveDialog({
-            defaultUri: vscode.Uri.file(defaultFileName + '_uncovered_report.md'),
+            defaultUri: defaultUri,
             filters: {
                 'Markdown': ['md']
             },

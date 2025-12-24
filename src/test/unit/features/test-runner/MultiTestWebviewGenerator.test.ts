@@ -95,10 +95,50 @@ suite('Multi-Test Webview Dashboard Test Suite', () => {
         assert.ok(content.includes('f.path'), 'Should store file path for navigation');
     });
 
+
     test('getWebviewContent creates expandable uncovered lines rows', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
         assert.ok(content.includes('uncovered-'), 'Should create row IDs for uncovered lines');
         assert.ok(content.includes('colspan="4"'), 'Should span all columns for detail row');
         assert.ok(content.includes('🎯 Uncovered Lines'), 'Should show uncovered lines emoji and title');
+    });
+
+    // New tests for Folder View
+    test('getWebviewContent includes folder view CSS styles', () => {
+        const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
+        assert.ok(content.includes('.folder-row'), 'Should have folder-row class');
+        assert.ok(content.includes('.folder-icon'), 'Should have folder-icon class');
+        assert.ok(content.includes('.folder-expanded'), 'Should have folder-expanded class');
+        assert.ok(content.includes('transform: rotate(90deg)'), 'Should have rotation style for expanded folders');
+    });
+
+    test('getWebviewContent includes tree building logic', () => {
+        const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
+        assert.ok(content.includes('function buildTree'), 'Should have buildTree function');
+        assert.ok(content.includes('test.name.split(\'/\')'), 'Should split path by slash');
+        assert.ok(content.includes('current.children'), 'Should handle children nodes');
+        assert.ok(content.includes('calcStats('), 'Should calculate folder statistics');
+    });
+
+    test('getWebviewContent includes recursive rendering logic', () => {
+        const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
+        assert.ok(content.includes('function renderTree'), 'Should have renderTree function');
+        assert.ok(content.includes('renderTree(folder, level + 1)'), 'Should call itself recursively');
+        assert.ok(content.includes('indent = level * 1.5'), 'Should calculate indentation based on level');
+    });
+
+    test('getWebviewContent includes folder interaction logic', () => {
+        const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
+        assert.ok(content.includes('function toggleFolder'), 'Should have toggleFolder function');
+        assert.ok(content.includes('expandedFolders.has'), 'Should check expanded state');
+        assert.ok(content.includes('expandedFolders.add'), 'Should add to expanded folders');
+        assert.ok(content.includes('expandedFolders.delete'), 'Should remove from expanded folders');
+    });
+
+    test('getWebviewContent includes folder row HTML structure', () => {
+        const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
+        assert.ok(content.includes('onclick="toggleFolder'), 'Should have onclick handler for folders');
+        assert.ok(content.includes('isExpanded ? \'📂\' : \'📁\''), 'Should switch folder icon based on state');
+        assert.ok(content.includes('folder.stats.passed === folder.stats.total'), 'Should check for all passed status');
     });
 });

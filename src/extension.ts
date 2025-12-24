@@ -352,7 +352,7 @@ export function activate(context: vscode.ExtensionContext) {
                     } catch (e) { console.error(e); }
                 }
 
-                await UncoveredLinesExporter.export(results, folderName);
+                await UncoveredLinesExporter.export(results, folderName, workspaceRoot);
             }
         });
 

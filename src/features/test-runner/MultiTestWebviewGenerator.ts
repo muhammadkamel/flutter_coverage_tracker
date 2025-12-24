@@ -33,8 +33,12 @@ export class MultiTestWebviewGenerator {
             animation: shimmer 2s infinite linear;
         }
 
+
         .scrollbox::-webkit-scrollbar { width: 6px; }
         .scrollbox::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .folder-row { cursor: pointer; user-select: none; }
+        .folder-icon { transition: transform 0.2s; display: inline-block; }
+        .folder-expanded .folder-icon { transform: rotate(90deg); }
         ${WebviewComponents.getScrollToTopStyles()}
     </style>
 </head>
@@ -161,6 +165,7 @@ ${WebviewComponents.getScrollToTopButton()}
         const overallCoverageEl = document.getElementById('overall-coverage');
 
         let tests = [];
+        let expandedFolders = new Set(); // Stores paths of expanded folders
 
         window.addEventListener('message', event => {
             const message = event.data;
@@ -175,11 +180,14 @@ ${WebviewComponents.getScrollToTopButton()}
                 
                 case 'init-dashboard':
                     tests = message.files.map(f => ({ 
-                        name: f.name,
+                        name: f.name, // relative path
                         path: f.path,
                         status: 'pending', 
                         coverage: null 
                     }));
+                    // Expand all by default initially? Or root?
+                    // Let's expand root folders by default
+                    // Actually, let's just updateUI which will handle defaults
                     updateUI();
                     break;
 
@@ -199,6 +207,10 @@ ${WebviewComponents.getScrollToTopButton()}
                     if (message.results) {
                         tests = message.results;
                         updateUI();
+                    }
+                    else {
+                        // If no results sent but just success status (error/cancel), we still update counters potentially?
+                        // Usually results are sent on completion.
                     }
                     break;
             }
@@ -254,6 +266,177 @@ ${WebviewComponents.getScrollToTopButton()}
                 btn.querySelector('span').textContent = originalText;
             }, 2000);
         }
+
+        function toggleFolder(folderPath) {
+            if (expandedFolders.has(folderPath)) {
+                expandedFolders.delete(folderPath);
+            } else {
+                expandedFolders.add(folderPath);
+            }
+            updateUI();
+        }
+        
+        // Tree Builder
+        function buildTree(tests) {
+            const root = { name: '', path: '', children: {}, tests: [] };
+            
+            tests.forEach(test => {
+                // Split path into parts (assuming name is relative path, e.g. "features/login/login_test.dart")
+                // Use forward slash, assuming normalized
+                const parts = test.name.split('/');
+                const fileName = parts.pop();
+                
+                let current = root;
+                let currentPath = '';
+
+                parts.forEach(part => {
+                    currentPath = currentPath ? currentPath + '/' + part : part;
+                    if (!current.children[part]) {
+                        current.children[part] = { 
+                            name: part, 
+                            path: currentPath, 
+                            children: {}, 
+                            tests: [],
+                            stats: { total: 0, passed: 0, failed: 0 } // Aggregate stats
+                        };
+                    }
+                    current = current.children[part];
+                });
+                
+                current.tests.push({ ...test, label: fileName });
+            });
+
+            // Calculate stats recursively
+            function calcStats(node) {
+                let total = node.tests.length;
+                let passed = node.tests.filter(t => t.success).length;
+                let failed = node.tests.filter(t => t.success === false).length;
+
+                Object.values(node.children).forEach(child => {
+                    const childStats = calcStats(child);
+                    total += childStats.total;
+                    passed += childStats.passed;
+                    failed += childStats.failed;
+                });
+
+                node.stats = { total, passed, failed };
+                return node.stats;
+            }
+
+            calcStats(root);
+            return root;
+        }
+
+        function renderTree(node, level = 0) {
+            let html = '';
+            
+            // Sort folders then files
+            const folders = Object.values(node.children).sort((a, b) => a.name.localeCompare(b.name));
+            const files = node.tests.sort((a, b) => a.label.localeCompare(b.label));
+
+            // Render Folders
+            folders.forEach(folder => {
+                const isExpanded = expandedFolders.has(folder.path);
+                
+                // For root-like folders (level 0), maybe start expanded if not set? 
+                // Currently user must click. 
+                // Let's default expand top level if we want. But for now set empty = collapsed initially.
+
+                const indent = level * 1.5; // rem
+                const icon = isExpanded ? '📂' : '📁';
+                const arrow = isExpanded ? '▼' : '▶'; // visual indicator
+
+                const statusColor = folder.stats.failed > 0 ? 'text-red-400' : (folder.stats.passed === folder.stats.total && folder.stats.total > 0 ? 'text-green-400' : 'text-vscode-fg');
+
+                html += \`
+                    <tr class="folder-row hover:bg-vscode-bg/50 transition-colors \${isExpanded ? 'folder-expanded' : ''}" onclick="toggleFolder('\${folder.path}')">
+                        <td class="py-3 font-semibold text-sm flex items-center gap-2" style="padding-left: \${indent + 1}rem">
+                            <span class="text-xs opacity-70 w-4 inline-block">\${arrow}</span>
+                            <span class="text-xl">\${icon}</span>
+                            <span>\${folder.name}</span>
+                            <span class="text-xs opacity-50 ml-2">(\${folder.stats.total})</span>
+                        </td>
+                        <td class="py-3 text-center">
+                            \${folder.stats.failed > 0 ? '<span class="w-2 h-2 rounded-full bg-red-500 inline-block" title="Has failing tests"></span>' : 
+                              folder.stats.passed === folder.stats.total && folder.stats.total > 0 ? '<span class="w-2 h-2 rounded-full bg-green-500 inline-block" title="All passed"></span>' : ''}
+                        </td>
+                        <td colspan="2"></td>
+                    </tr>
+                \`;
+
+                if (isExpanded) {
+                    html += renderTree(folder, level + 1);
+                }
+            });
+
+            // Render Files
+            files.forEach(test => {
+                const indent = level * 1.5;
+                const statusClass = test.status === 'pending' ? 'bg-vscode-border text-vscode-fg/50' : 
+                                  test.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400';
+                
+                const statusLabel = test.status === 'pending' ? 'Waiting' : 
+                                   test.success ? 'Passed' : 'Failed';
+
+                const uncoveredLines = test.coverage?.uncoveredLines || [];
+                const hasUncovered = uncoveredLines.length > 0;
+                const testId = test.name.replace(/[^a-zA-Z0-9]/g, '-');
+
+                // File row
+                html += \`
+                    <tr class="group hover:bg-vscode-bg/50 transition-colors">
+                        <td class="py-3 font-medium text-sm truncate max-w-xs" style="padding-left: \${indent + 2.5}rem" title="\${test.name}">
+                            <span class="cursor-pointer hover:text-blue-400 transition-colors flex items-center gap-2" onclick="navigateToTestFile('\${test.path}')">
+                                <span class="opacity-70">📄</span> 
+                                \${test.label}
+                            </span>
+                        </td>
+                        <td class="py-3 text-center">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider \${statusClass}">
+                                \${statusLabel}
+                            </span>
+                        </td>
+                        <td class="py-3 text-right font-mono text-sm">
+                            \${test.coverage ? \`\${test.coverage.percentage}%\` : '--'}
+                        </td>
+                        <td class="py-3 text-center">
+                            \${hasUncovered ? \`<button class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold hover:bg-red-500/40 transition-colors" onclick="toggleUncovered('\${testId}')">\${uncoveredLines.length} lines</button>\` : '<span class="text-xs opacity-40">None</span>'}
+                        </td>
+                    </tr>
+                \`;
+
+                // Sub-row for Uncovered Lines (not indented deeper, just spans)
+                // Actually should align with file.
+                if (hasUncovered && test.sourceFile) {
+                    const linesHtml = uncoveredLines.map(line => 
+                        \`<div class="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs font-mono border border-red-500/30 cursor-pointer hover:bg-red-500/40 transition-colors clickable" onclick="navigateToLine('\${test.sourceFile}', \${line})">\${line}</div>\`
+                    ).join('');
+                    
+                    html += \`
+                        <tr id="uncovered-\${testId}" class="hidden bg-black/10">
+                            <td colspan="4" class="py-2 px-4 shadow-inner" style="padding-left: \${indent + 3}rem">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-1">
+                                        <div class="text-xs font-semibold mb-2 opacity-70">🎯 Uncovered Lines (\${uncoveredLines.length}):</div>
+                                        <div class="flex flex-wrap gap-2">
+                                            \${linesHtml}
+                                        </div>
+                                    </div>
+                                    <button class="px-3 py-1 bg-vscode-button hover:bg-vscode-button-hover text-white rounded text-xs font-semibold transition-all flex items-center gap-1 flex-shrink-0" onclick="copyLines('\${testId}', [\${uncoveredLines.join(',')}])" title="Copy uncovered lines">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>Copy</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    \`;
+                }
+            });
+
+            return html;
+        }
         
         function updateUI() {
             totalTestsEl.textContent = tests.length;
@@ -267,69 +450,22 @@ ${WebviewComponents.getScrollToTopButton()}
             overallCoverageEl.textContent = avg + '%';
 
             fileListBody.innerHTML = '';
-            tests.forEach(test => {
-                const row = document.createElement('tr');
-                row.className = 'group hover:bg-vscode-bg/50 transition-colors';
-                
-                const statusClass = test.status === 'pending' ? 'bg-vscode-border text-vscode-fg/50' : 
-                                  test.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400';
-                
-                const statusLabel = test.status === 'pending' ? 'Waiting' : 
-                                   test.success ? 'Passed' : 'Failed';
+            
+            // Build and Render Tree
+            const tree = buildTree(tests);
+            
+            // If tree has only one root folder or empty root, handle it.
+            // Our buildTree returns a root node. its children are top level folders.
+            // We want to verify if we should auto-expand the top level if it's just 'test/features/...'?
+            // For now, simple user interaction is safer.
+            // Also, update: defaults.
+            // If expandedFolders is empty and it's first load, maybe expand root?
+            // Actually let's auto-expand all by default for better visibility, user can collapse.
+            // But we can't easily detect "first load" inside updateUI without a flag.
+            // Let's rely on user expanding for now, or expand root keys initially in init-dashboard.
 
-                const uncoveredLines = test.coverage?.uncoveredLines || [];
-                const hasUncovered = uncoveredLines.length > 0;
-                const testId = test.name.replace(/[^a-zA-Z0-9]/g, '-');
-
-                row.innerHTML = \`
-                    <td class="py-4 font-medium text-sm truncate max-w-xs" title="\${test.name}">
-                        <span class="cursor-pointer hover:text-blue-400 transition-colors" onclick="navigateToTestFile('\${test.path}')">\${test.name}</span>
-                    </td>
-                    <td class="py-4 text-center">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider \${statusClass}">
-                            \${statusLabel}
-                        </span>
-                    </td>
-                    <td class="py-4 text-right font-mono text-sm">
-                        \${test.coverage ? \`\${test.coverage.percentage}%\` : '--'}
-                    </td>
-                    <td class="py-4 text-center">
-                        \${hasUncovered ? \`<button class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold hover:bg-red-500/40 transition-colors" onclick="toggleUncovered('\${testId}')">\${uncoveredLines.length} lines</button>\` : '<span class="text-xs opacity-40">None</span>'}
-                    </td>
-                \`;
-                fileListBody.appendChild(row);
-                
-                // Add expandable uncovered lines row if there are uncovered lines
-                if (hasUncovered && test.sourceFile) {
-                    const detailRow = document.createElement('tr');
-                    detailRow.id = \`uncovered-\${testId}\`;
-                    detailRow.className = 'hidden';
-                    
-                    const linesHtml = uncoveredLines.map(line => 
-                        \`<div class="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs font-mono border border-red-500/30 cursor-pointer hover:bg-red-500/40 transition-colors clickable" onclick="navigateToLine('\${test.sourceFile}', \${line})">\${line}</div>\`
-                    ).join('');
-                    
-                    detailRow.innerHTML = \`
-                        <td colspan="4" class="py-2 px-4 bg-black/20">
-                            <div class="flex items-start gap-3">
-                                <div class="flex-1">
-                                    <div class="text-xs font-semibold mb-2 opacity-70">🎯 Uncovered Lines (\${uncoveredLines.length}):</div>
-                                    <div class="flex flex-wrap gap-2">
-                                        \${linesHtml}
-                                    </div>
-                                </div>
-                                <button class="px-3 py-1 bg-vscode-button hover:bg-vscode-button-hover text-white rounded text-xs font-semibold transition-all flex items-center gap-1" onclick="copyLines('\${testId}', [\${uncoveredLines.join(',')}])" title="Copy uncovered lines">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <span>Copy</span>
-                                </button>
-                            </div>
-                        </td>
-                    \`;
-                    fileListBody.appendChild(detailRow);
-                }
-            });
+            const html = renderTree(tree);
+            fileListBody.innerHTML = html;
         }
         
         // Scroll to Top Functionality

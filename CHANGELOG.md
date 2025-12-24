@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.12.0] - 2025-12-25
+
+### Added
+
+- **Configuration**: User-configurable excluded file extensions
+  - New setting `flutterCoverage.excludedFileExtensions` to customize which files to skip during automatic test generation
+  - Default extensions: `.g.dart`, `.freezed.dart`
+  - Users can now add custom extensions like `.gr.dart`, `.config.dart`, or any other generated files
+  - Accessible through VS Code Settings UI or `settings.json`
+
+### Changed
+
+- **Internal**: Refactored hard-coded excluded extensions to use VS Code configuration API
+  - Converted `EXCLUDED_GENERATED_FILE_EXTENSIONS` constant to `getExcludedFileExtensions()` function
+  - Improved flexibility and maintainability
+
+---
+
+## [0.11.3] - 2025-12-24
+
+### Improved
+
+- **Export**: Enhanced Markdown report format with vertical layout for better readability
+  - Changed from table format to vertical layout with bold labels
+  - Each file displays: **File**, **Uncovered lines**, **Test Coverage Percentage**
+  - Added horizontal rule separators between file entries
+  - More readable and scannable format for coverage reports
+
+---
+
 ## [0.11.2] - 2025-12-24
 
 ### Improved

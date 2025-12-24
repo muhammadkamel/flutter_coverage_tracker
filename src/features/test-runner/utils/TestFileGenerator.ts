@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { FileSystemUtils } from './FileSystemUtils';
-import { EXCLUDED_GENERATED_FILE_EXTENSIONS } from './TestGenerationConstants';
+import { getExcludedFileExtensions } from './TestGenerationConstants';
 
 export class TestFileGenerator {
 
@@ -13,7 +13,8 @@ export class TestFileGenerator {
         }
 
         // Skip generated files
-        if (EXCLUDED_GENERATED_FILE_EXTENSIONS.some(ext => sourceFilePath.endsWith(ext))) {
+        const excludedExtensions = getExcludedFileExtensions();
+        if (excludedExtensions.some(ext => sourceFilePath.endsWith(ext))) {
             return false;
         }
 

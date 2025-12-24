@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.9.1] - 2025-12-24
+
+### Fixed
+
+- **Dashboard**: Fixed an intermittent issue where clicking on test file names failed to navigate to the file after a test run completed.
+
+## [0.9.0] - 2025-12-24
+
+### Added
+
+- **Feature**: Export Uncovered Lines Report
+  - New "Export MD" button in the Folder Tests Dashboard.
+  - Generates a Markdown report listing all files with their coverage percentage and specific uncovered line numbers.
+  - Useful for sharing coverage gaps with team members or tracking debt.
+
+## [0.8.4] - 2025-12-24
+
+### Improved
+
+- **Internal**: Refactored exclusion logic to adhere to SOLID principles (centralized configuration).
+
+## [0.8.3] - 2025-12-24
+
+### Improved
+
+- **Tests**: Excluded `.g.dart` and `.freezed.dart` from auto-test creation.
+
+## [0.8.2] - 2025-12-24
+
+### Added
+
+- **Productivity**: Auto-create missing test files logic
+  - Running "Run Related Test" on a file with no test now automatically creates the `test/` file mirroring `lib/` structure.
+  - "Run Folder Tests" now scans for all `.dart` files in the selected folder and generates missing tests for all of them.
+  - Automatically handles package imports based on `pubspec.yaml` name.
+- **Testing**: Added unit tests for file generation logic.
+
+## [0.8.1] - 2025-12-24
+
+### Fixed
+
+- **UI**: Release with rounded rerun button.
+
 ## [0.8.0] - 2025-12-24
 
 ### Added

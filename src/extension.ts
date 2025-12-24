@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { UncoveredLinesExporter } from './features/test-runner/utils/UncoveredLinesExporter';
 import { FileSystemUtils } from './features/test-runner/utils/FileSystemUtils';
+import { TestFileGenerator } from './features/test-runner/utils/TestFileGenerator';
 import { LcovParser } from './shared/coverage/LcovParser';
 import { FlutterTestRunner } from './features/test-runner/FlutterTestRunner';
 import { VsCodeFileWatcher } from './features/test-runner/VsCodeFileWatcher';
@@ -66,6 +68,14 @@ export function activate(context: vscode.ExtensionContext) {
 
         const workspaceRoot = workspaceFolder.uri.fsPath;
         const testFilePath = FileSystemUtils.resolveTestFilePath(currentFile, workspaceRoot);
+
+        // Auto-create if missing
+        if (!fs.existsSync(testFilePath)) {
+            const created = await TestFileGenerator.createTestFile(currentFile, workspaceRoot);
+            if (created) {
+                vscode.window.showInformationMessage(`Created test file: ${path.basename(testFilePath)}`);
+            }
+        }
 
         if (fs.existsSync(testFilePath)) {
             const fileName = path.basename(testFilePath);
@@ -142,7 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
             orchestrator.runTest(testFilePath, workspaceRoot);
 
         } else {
-            vscode.window.showErrorMessage(`Could not find related test file at: ${testFilePath}`);
+            vscode.window.showErrorMessage(`Could not find or create related test file at: ${testFilePath}`);
         }
     });
 
@@ -172,8 +182,18 @@ export function activate(context: vscode.ExtensionContext) {
             testFolderPath = path.join(workspaceRoot, 'test', innerPath);
         }
 
+        // Auto-create test files for all Dart files in the selected folder (if in lib)
+        if (relativeSelectedPath.startsWith('lib')) {
+            const dartFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(folderPath, '**/*.dart'));
+            for (const file of dartFiles) {
+                await TestFileGenerator.createTestFile(file.fsPath, workspaceRoot);
+            }
+        }
+
+        // Re-check for test folder existence after potential creation
         if (!fs.existsSync(testFolderPath)) {
-            vscode.window.showErrorMessage(`No tests found for folder: ${relativeSelectedPath}`);
+            // If still no test folder, it means no tests were created (maybe no dart files found?)
+            vscode.window.showErrorMessage(`No tests found or created for folder: ${relativeSelectedPath}`);
             return;
         }
 
@@ -242,6 +262,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                             folderResults.push({
                                 name: path.relative(testFolderPath, testFile.fsPath),
+                                path: testFile.fsPath,
                                 success: testSuccess,
                                 coverage: match ? match.fileCoverage : null,
                                 sourceFile: sourceFile
@@ -283,6 +304,55 @@ export function activate(context: vscode.ExtensionContext) {
                     const doc = await vscode.workspace.openTextDocument(filePath);
                     await vscode.window.showTextDocument(doc);
                 }
+            } else if (message.type === 'export') {
+                // We need the results. Since folderResults is local to the onTestComplete callback,
+                // we might need to store it or re-calculate.
+                // However, onTestComplete sends 'finished' message with data.
+
+                // Let's check where folderResults is available.
+                // It's calculated inside onTestComplete.
+                // We'll simpler approach: pass the results from the webview back? 
+                // OR calculate it again? No, we have the latest results in the panel state or can re-read coverage.
+
+                // Better: Let's make extension.ts store the last results for this panel?
+                // Or just re-parse coverage. lcov.info + test files list.
+
+                // Re-calculating avoids stale state.
+                const config = vscode.workspace.getConfiguration('flutterCoverage');
+                const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
+                const coverageFile = path.join(workspaceRoot, relativePath);
+
+                const results: any[] = [];
+                if (fs.existsSync(coverageFile)) {
+                    try {
+                        const lcov = await LcovParser.parse(coverageFile);
+                        for (const testFile of testFiles) {
+                            const sourceCandidates = CoverageMatcher.deduceSourceFilePath(testFile.fsPath, workspaceRoot);
+                            let sourceFile = undefined;
+                            let match = undefined;
+                            for (const candidate of sourceCandidates) {
+                                match = CoverageMatcher.findCoverageEntry(candidate, lcov.files, workspaceRoot);
+                                if (match && match.fileCoverage) {
+                                    sourceFile = candidate;
+                                    break;
+                                }
+                            }
+                            if (!sourceFile && sourceCandidates.length > 0) sourceFile = sourceCandidates[0];
+
+                            if (sourceFile) {
+                                results.push({
+                                    name: path.relative(testFolderPath, testFile.fsPath),
+                                    path: testFile.fsPath,
+                                    success: match && match.fileCoverage ? true : false,
+                                    coverage: match ? match.fileCoverage : null,
+                                    sourceFile: sourceFile
+                                });
+                            }
+                        }
+                    } catch (e) { console.error(e); }
+                }
+
+                await UncoveredLinesExporter.export(results, folderName);
             }
         });
 

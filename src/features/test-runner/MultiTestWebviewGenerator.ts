@@ -57,6 +57,12 @@ export class MultiTestWebviewGenerator {
                     </svg>
                     <span>Re-run All</span>
                 </button>
+                <button id="export-btn" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-semibold transition-all flex items-center gap-2 shadow-md hover:shadow-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    <span>Export MD</span>
+                </button>
                 <button id="cancel-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-semibold transition-all flex items-center gap-2 shadow-md hover:shadow-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -145,6 +151,7 @@ ${WebviewComponents.getScrollToTopButton()}
         const fileListBody = document.getElementById('file-list-body');
         const statusBadge = document.getElementById('status-badge');
         const rerunBtn = document.getElementById('rerun-btn');
+        const exportBtn = document.getElementById('export-btn');
         const cancelBtn = document.getElementById('cancel-btn');
         
         // Counters
@@ -178,6 +185,7 @@ ${WebviewComponents.getScrollToTopButton()}
 
                 case 'finished':
                     rerunBtn.classList.remove('hidden');
+                    exportBtn.classList.remove('hidden');
                     cancelBtn.classList.add('hidden');
                     
                     if (message.success) {
@@ -201,8 +209,13 @@ ${WebviewComponents.getScrollToTopButton()}
              statusBadge.textContent = 'Running';
              statusBadge.className = 'gradient-primary px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider text-white animate-pulse-slow shadow-lg';
              rerunBtn.classList.add('hidden');
+             exportBtn.classList.add('hidden');
              cancelBtn.classList.remove('hidden');
              vscode.postMessage({ type: 'rerun' });
+        };
+        
+        exportBtn.onclick = () => {
+             vscode.postMessage({ type: 'export' });
         };
 
         cancelBtn.onclick = () => {

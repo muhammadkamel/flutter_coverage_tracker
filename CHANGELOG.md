@@ -1,5 +1,130 @@
 # Changelog
 
+## [0.17.0] - 2025-12-25
+
+### Added
+
+- **Feature**: Coverage History & Trends
+  - Historical coverage tracking with timestamps
+  - Interactive Chart.js visualization showing coverage over time
+  - Trend indicators (↗️ improving, ↘️ declining, → stable)
+  - Statistics dashboard (current, peak, low, average coverage)
+  - Local data persistence using VS Code WorkspaceState
+  - Automatic snapshot recording on coverage updates
+  - Manual snapshot capture command
+  - Export history to JSON or CSV
+  - Recent snapshots table with platform badges
+  - Automatic data pruning based on retention settings
+
+### Configuration
+
+- Added `flutterCoverage.historyEnabled` to enable/disable tracking
+- Added `flutterCoverage.historyRetentionDays` to set retention period (default: 90 days)
+- Added `flutterCoverage.historyAutoRecord` to enable auto-recording
+- Added `flutterCoverage.historyMaxSnapshots` to limit snapshot count (default: 1000)
+
+### Commands
+
+- View Coverage History - `flutter-coverage-tracker.viewHistory`
+- Record Coverage Snapshot - `flutter-coverage-tracker.recordSnapshot`
+- Export Coverage History - `flutter-coverage-tracker.exportHistory`
+- Clear Coverage History - `flutter-coverage-tracker.clearHistory`
+
+---
+
+## [0.16.0] - 2025-12-25
+
+### Added
+
+- **Feature**: Multi-Platform Coverage Support
+  - Platform-specific test commands (📱 Android, 🍎 iOS, 🌐 Web, 💻 Desktop)
+  - Switch between platforms via Command Palette
+  - Aggregated coverage view combining all platforms
+  - Platform indicator in status bar (e.g., "Cov: 75% 📱")
+  - Separate coverage files per platform (coverage/android/, coverage/ios/, etc.)
+  - Smart coverage aggregation (union of covered lines across platforms)
+  - Platform-aware coverage manager
+
+### Configuration
+
+- Added `flutterCoverage.defaultPlatform` to set default platform view
+- Added `flutterCoverage.platformCoveragePaths` to configure per-platform coverage files
+
+### Commands
+
+- Run Tests (Android) - `flutter-coverage-tracker.runTestsAndroid`
+- Run Tests (iOS) - `flutter-coverage-tracker.runTestsIOS`
+- Run Tests (Web) - `flutter-coverage-tracker.runTestsWeb`
+- Run Tests (Desktop) - `flutter-coverage-tracker.runTestsDesktop`
+- Switch Coverage Platform - `flutter-coverage-tracker.switchPlatform`
+
+---
+
+## [0.15.0] - 2025-12-25
+
+### Added
+
+- **Feature**: Inline Coverage Gutters
+  - Visual coverage indicators directly in the editor gutter
+  - ✅ Green indicators for covered lines
+  - ❌ Red indicators for uncovered lines
+  - Real-time updates when coverage changes
+  - Configurable color styles (green/blue for covered, red/orange for uncovered)
+  - Toggle gutters on/off via settings
+  - Lightweight SVG icons with minimal visual interference
+  - Smart line detection (skips comments, imports, and structural code)
+
+### Configuration
+
+- Added `flutterCoverage.showGutterCoverage` to enable/disable gutters
+- Added `flutterCoverage.coveredGutterStyle` for covered line colors
+- Added `flutterCoverage.uncoveredGutterStyle` for uncovered line colors
+
+---
+
+## [0.14.0] - 2025-12-25
+
+### Added
+
+- **Feature**: Smart Test Suggestions Dashboard UI (Phase 2 Complete)
+  - Interactive suggestions card in multi-test dashboard
+  - Priority-coded badges (🔴 High, 🟡 Medium, 🟢 Low)
+  - File coverage percentage and complexity indicators
+  - Uncovered lines count and priority scores
+  - Top 3 actionable suggestions per file
+  - Real-time updates as tests complete
+  - Beautiful, responsive UI with hover effects
+
+### Changed
+
+- Enhanced multi-test dashboard with suggestions panel
+- Integrated TestSuggestionEngine into coverage workflow
+
+---
+
+## [0.13.0] - 2025-12-25
+
+### Added
+
+- **Feature**: Smart Test Suggestions Core Engine
+  - New `TestSuggestionEngine` module that analyzes coverage data and generates prioritized test suggestions
+  - Intelligent priority ranking algorithm based on:
+    - Uncovered lines count (40% weight)
+    - Coverage percentage gap (30% weight)
+    - File size and impact (30% weight)
+  - Priority categorization: High (≥40), Medium (≥15), Low (<15)
+  - Complexity estimation: Classifies files as simple, moderate, or complex
+  - File-type specific suggestions for widgets, repositories, controllers, use cases, services, and models
+  - Comprehensive test suite with 20 passing unit tests
+  - Foundation ready for Phase 2 dashboard UI integration
+
+### Internal
+
+- Added `TestSuggestion` interface to support test prioritization
+- Created extensive test coverage for suggestion algorithm
+
+---
+
 ## [0.12.0] - 2025-12-25
 
 ### Added

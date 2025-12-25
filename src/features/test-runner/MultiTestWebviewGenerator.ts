@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WebviewComponents } from './WebviewComponents';
 
 export class MultiTestWebviewGenerator {
-    public static getWebviewContent(folderName: string, styleSrc: vscode.Uri): string {
+    public static getWebviewContent(folderName: string, styleSrc: vscode.Uri, suggestions: any[] = []): string {
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,6 +145,17 @@ export class MultiTestWebviewGenerator {
                 <div id="output" class="flex-1 bg-black/60 border border-vscode-border/50 p-4 rounded-xl overflow-y-auto font-mono text-xs text-gray-400 leading-relaxed scrollbox"></div>
             </div>
         </div>
+
+        <!-- Smart Test Suggestions Card -->
+        <div class="bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <span class="text-xl">🎯</span>
+                <span>Smart Test Suggestions</span>
+            </h2>
+            <div id="suggestions-container" class="space-y-3 max-h-[500px] overflow-y-auto scrollbox">
+                <div class="text-sm opacity-50 text-center py-8">Analyzing coverage...</div>
+            </div>
+        </div>
     </div>
 
 ${WebviewComponents.getScrollToTopButton()}
@@ -212,6 +223,10 @@ ${WebviewComponents.getScrollToTopButton()}
                         // If no results sent but just success status (error/cancel), we still update counters potentially?
                         // Usually results are sent on completion.
                     }
+                    break;
+
+                case 'suggestions':
+                    renderSuggestions(message.suggestions);
                     break;
             }
         });
@@ -466,6 +481,49 @@ ${WebviewComponents.getScrollToTopButton()}
 
             const html = renderTree(tree);
             fileListBody.innerHTML = html;
+        }
+
+        // Render Test Suggestions
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestions-container');
+            if (!suggestions || suggestions.length === 0) {
+                container.innerHTML = '<div class="text-sm opacity-50 text-center py-8">No suggestions available</div>';
+                return;
+            }
+
+            container.innerHTML = suggestions.map((s, index) => {
+                const priorityColor = s.priority === 'high' ? 'bg-red-500/90' :
+                                     s.priority === 'medium' ? 'bg-yellow-500/90' : 'bg-green-500/90';
+                const priorityIcon = s.priority === 'high' ? '🔴' :
+                                    s.priority === 'medium' ? '🟡' : '🟢';
+                const complexityLabel = s.complexity.charAt(0).toUpperCase() + s.complexity.slice(1);
+
+                const suggestionsHtml = s.suggestions.slice(0, 3).map(text => 
+                    '<div class="py-0.5">• ' + text + '</div>'
+                ).join('');
+
+                return '<div class="p-4 bg-vscode-bg/50 rounded-lg border border-vscode-border/30 hover:border-vscode-border/60 transition-all hover-lift">' +
+                    '<div class="flex items-start justify-between gap-3 mb-3">' +
+                        '<div class="flex-1">' +
+                            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
+                                '<span class="' + priorityColor + ' text-white text-xs px-2 py-1 rounded font-bold uppercase tracking-wide">' + priorityIcon + ' ' + s.priority + '</span>' +
+                                '<span class="font-semibold text-sm">' + s.fileName + '</span>' +
+                                '<span class="text-xs opacity-50">•</span>' +
+                                '<span class="text-xs opacity-70">' + s.coveragePercentage + '% covered</span>' +
+                                '<span class="text-xs opacity-50">•</span>' +
+                                '<span class="text-xs opacity-60">' + complexityLabel + ' complexity</span>' +
+                            '</div>' +
+                            '<div class="flex items-center gap-2 mb-2">' +
+                                '<span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded font-mono">' + s.uncoveredCount + ' uncovered lines</span>' +
+                                '<span class="text-xs opacity-50">Priority Score: ' + s.priorityScore.toFixed(1) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="text-xs opacity-70 space-y-1 pl-2 border-l-2 border-vscode-border/30">' +
+                        suggestionsHtml +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
         
         // Scroll to Top Functionality

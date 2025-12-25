@@ -11,6 +11,11 @@ import { CoverageOrchestrator } from './features/test-runner/CoverageOrchestrato
 import { WebviewGenerator } from './features/test-runner/WebviewGenerator';
 import { MultiTestWebviewGenerator } from './features/test-runner/MultiTestWebviewGenerator';
 import { CoverageMatcher } from './shared/coverage/CoverageMatcher';
+import { TestSuggestionEngine } from './features/test-runner/TestSuggestionEngine';
+import { CoverageGutterProvider } from './features/coverage-gutters/CoverageGutterProvider';
+import { PlatformCoverageManager, Platform } from './features/platform-coverage/PlatformCoverageManager';
+import { CoverageHistoryManager } from './features/coverage-history/CoverageHistoryManager';
+import { HistoryWebviewGenerator } from './features/coverage-history/HistoryWebviewGenerator';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -41,6 +46,17 @@ export function activate(context: vscode.ExtensionContext) {
     const testRunner = new FlutterTestRunner();
     const fileWatcher = new VsCodeFileWatcher();
     const orchestrator = new CoverageOrchestrator(testRunner, fileWatcher);
+
+    // Initialize Coverage Gutter Provider
+    const gutterProvider = new CoverageGutterProvider(context);
+    context.subscriptions.push(gutterProvider);
+
+    // Initialize Platform Coverage Manager
+    const platformManager = new PlatformCoverageManager();
+    context.subscriptions.push(platformManager);
+
+    // Initialize Coverage History Manager
+    const historyManager = new CoverageHistoryManager(context);
 
     // Command: Run Related Test
     let runTestDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runRelatedTest', async (uri?: vscode.Uri) => {
@@ -209,7 +225,7 @@ export function activate(context: vscode.ExtensionContext) {
         );
 
         const styleUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'out', 'webview.css'));
-        panel.webview.html = MultiTestWebviewGenerator.getWebviewContent(folderName, styleUri);
+        panel.webview.html = MultiTestWebviewGenerator.getWebviewContent(folderName, styleUri, []);
 
         // Find all test files in this folder to show in dashboard
         const testFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(testFolderPath, '**/*_test.dart'));
@@ -269,8 +285,15 @@ export function activate(context: vscode.ExtensionContext) {
                             });
                         }
                     }
+
+                    // Generate test suggestions from coverage data
+                    const suggestions = TestSuggestionEngine.analyzeCoverage(lcov.files, workspaceRoot);
+                    panel.webview.postMessage({
+                        type: 'suggestions',
+                        suggestions: suggestions
+                    });
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error in coverage processing:', e);
                 }
             }
 
@@ -399,6 +422,230 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(showDetailsDisposable);
+
+    // Command: Run Tests (Android)
+    const runTestsAndroidDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runTestsAndroid', async () => {
+        await runPlatformTests(Platform.Android, platformManager);
+    });
+    context.subscriptions.push(runTestsAndroidDisposable);
+
+    // Command: Run Tests (iOS)
+    const runTestsIOSDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runTestsIOS', async () => {
+        await runPlatformTests(Platform.iOS, platformManager);
+    });
+    context.subscriptions.push(runTestsIOSDisposable);
+
+    // Command: Run Tests (Web)
+    const runTestsWebDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runTestsWeb', async () => {
+        await runPlatformTests(Platform.Web, platformManager);
+    });
+    context.subscriptions.push(runTestsWebDisposable);
+
+    // Command: Run Tests (Desktop)
+    const runTestsDesktopDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runTestsDesktop', async () => {
+        await runPlatformTests(Platform.Desktop, platformManager);
+    });
+    context.subscriptions.push(runTestsDesktopDisposable);
+
+    // Command: Switch Platform
+    const switchPlatformDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.switchPlatform', async () => {
+        const platforms = platformManager.getAllPlatforms();
+        const items = platforms.map(p => ({
+            label: `${platformManager.getPlatformIcon(p)} ${platformManager.getPlatformLabel(p)}`,
+            platform: p
+        }));
+
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select coverage platform to display'
+        });
+
+        if (selected) {
+            platformManager.setPlatform(selected.platform);
+            await updateCoverage(platformManager);
+            vscode.window.showInformationMessage(`Switched to ${platformManager.getPlatformLabel(selected.platform)} coverage`);
+        }
+    });
+    context.subscriptions.push(switchPlatformDisposable);
+
+    // Listen to platform changes
+    platformManager.onPlatformChange(async () => {
+        await updateCoverage(platformManager);
+    });
+
+    // Command: View Coverage History
+    const viewHistoryDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.viewHistory', async () => {
+        const panel = vscode.window.createWebviewPanel(
+            'coverageHistory',
+            '📊 Coverage History',
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            }
+        );
+
+        panel.webview.html = HistoryWebviewGenerator.getWebviewContent(historyManager, 30);
+
+        // Handle messages from webview
+        panel.webview.onDidReceiveMessage(async (message) => {
+            if (message.type === 'export') {
+                const format = await vscode.window.showQuickPick(['JSON', 'CSV'], {
+                    placeHolder: 'Select export format'
+                });
+
+                if (format) {
+                    const content = format === 'JSON'
+                        ? historyManager.exportToJSON()
+                        : historyManager.exportToCSV();
+
+                    const uri = await vscode.window.showSaveDialog({
+                        defaultUri: vscode.Uri.file(`coverage-history.${format.toLowerCase()}`),
+                        filters: {
+                            [format]: [format.toLowerCase()]
+                        }
+                    });
+
+                    if (uri) {
+                        await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+                        vscode.window.showInformationMessage(`History exported to ${uri.fsPath}`);
+                    }
+                }
+            }
+        });
+    });
+    context.subscriptions.push(viewHistoryDisposable);
+
+    // Command: Record Coverage Snapshot
+    const recordSnapshotDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.recordSnapshot', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            vscode.window.showErrorMessage('No workspace folder open');
+            return;
+        }
+
+        try {
+            const coverage = await platformManager.loadCoverage(workspaceFolders[0].uri.fsPath);
+            if (coverage) {
+                await historyManager.recordSnapshot(coverage, platformManager.getCurrentPlatform());
+                vscode.window.showInformationMessage('Coverage snapshot recorded');
+            } else {
+                vscode.window.showWarningMessage('No coverage data available');
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to record snapshot');
+        }
+    });
+    context.subscriptions.push(recordSnapshotDisposable);
+
+    // Command: Export Coverage History
+    const exportHistoryDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.exportHistory', async () => {
+        const format = await vscode.window.showQuickPick(['JSON', 'CSV'], {
+            placeHolder: 'Select export format'
+        });
+
+        if (format) {
+            const content = format === 'JSON'
+                ? historyManager.exportToJSON()
+                : historyManager.exportToCSV();
+
+            const uri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(`coverage-history.${format.toLowerCase()}`),
+                filters: {
+                    [format]: [format.toLowerCase()]
+                }
+            });
+
+            if (uri) {
+                await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+                vscode.window.showInformationMessage(`History exported to ${uri.fsPath}`);
+            }
+        }
+    });
+    context.subscriptions.push(exportHistoryDisposable);
+
+    // Command: Clear Coverage History
+    const clearHistoryDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.clearHistory', async () => {
+        const confirm = await vscode.window.showWarningMessage(
+            'Are you sure you want to clear all coverage history?',
+            { modal: true },
+            'Clear History'
+        );
+
+        if (confirm === 'Clear History') {
+            await historyManager.clearHistory();
+            vscode.window.showInformationMessage('Coverage history cleared');
+        }
+    });
+    context.subscriptions.push(clearHistoryDisposable);
+
+    // Auto-record snapshot on coverage updates
+    const config = vscode.workspace.getConfiguration('flutterCoverage');
+    const autoRecord = config.get<boolean>('historyAutoRecord', true);
+
+    if (autoRecord) {
+        // Listen to platform changes to auto-record
+        platformManager.onPlatformChange(async () => {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (workspaceFolders) {
+                try {
+                    const coverage = await platformManager.loadCoverage(workspaceFolders[0].uri.fsPath);
+                    if (coverage) {
+                        await historyManager.recordSnapshot(coverage, platformManager.getCurrentPlatform());
+                    }
+                } catch (error) {
+                    // Silently fail for auto-record
+                }
+            }
+        });
+    }
+
+    // Initial coverage update with platform manager
+    updateCoverage(platformManager);
+}
+
+async function runPlatformTests(platform: Platform, platformManager: PlatformCoverageManager): Promise<void> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage('No workspace folder open');
+        return;
+    }
+
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+    let command = 'flutter test --coverage';
+    let outputDir = platformManager.getCoveragePath(platform);
+
+    // Add platform-specific flags
+    switch (platform) {
+        case Platform.Android:
+            command += ' --platform android';
+            outputDir = 'coverage/android';
+            break;
+        case Platform.iOS:
+            command += ' --platform ios';
+            outputDir = 'coverage/ios';
+            break;
+        case Platform.Web:
+            command += ' --platform chrome';
+            outputDir = 'coverage/web';
+            break;
+        case Platform.Desktop:
+            // Desktop uses current platform by default
+            outputDir = 'coverage/desktop';
+            break;
+    }
+
+    vscode.window.showInformationMessage(`Running ${platformManager.getPlatformLabel(platform)} tests...`);
+
+    const terminal = vscode.window.createTerminal('Flutter Tests');
+    terminal.sendText(`cd "${workspaceRoot}"`);
+    terminal.sendText(command);
+    terminal.show();
+
+    // Update platform manager after tests complete (wait a bit for file to be generated)
+    setTimeout(async () => {
+        platformManager.setPlatform(platform);
+        await updateCoverage(platformManager);
+    }, 3000);
 }
 
 function getCoverageFilePath(): string | undefined {
@@ -413,34 +660,55 @@ function getCoverageFilePath(): string | undefined {
     return new vscode.RelativePattern(workspaceFolders[0], relativePath).pattern;
 }
 
-async function updateCoverage() {
+async function updateCoverage(platformManager?: PlatformCoverageManager) {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
         statusBarItem.hide();
         return;
     }
 
-    const config = vscode.workspace.getConfiguration('flutterCoverage');
-    const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
-    const filePath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
-    if (fs.existsSync(filePath)) {
+    if (platformManager) {
         try {
-            const data = await LcovParser.parse(filePath);
-            statusBarItem.text = `$(check) Cov: ${data.overall.percentage}%`;
-            statusBarItem.tooltip = `Lines Hit: ${data.overall.linesHit} / ${data.overall.linesFound}`;
-            statusBarItem.show();
+            const data = await platformManager.loadCoverage(workspaceRoot);
+            if (data) {
+                const platform = platformManager.getCurrentPlatform();
+                const platformIcon = platformManager.getPlatformIcon(platform);
+                statusBarItem.text = `$(check) Cov: ${data.overall.percentage}% ${platformIcon}`;
+                statusBarItem.tooltip = `${platformManager.getPlatformLabel(platform)}: Lines Hit: ${data.overall.linesHit} / ${data.overall.linesFound}`;
+                statusBarItem.show();
+            } else {
+                statusBarItem.hide();
+            }
         } catch (error) {
-            console.error('Error parsing coverage file:', error);
+            console.error('Error updating coverage:', error);
             statusBarItem.text = `$(error) Cov: Error`;
-            statusBarItem.tooltip = 'Error parsing lcov.info';
+            statusBarItem.tooltip = 'Error loading coverage';
             statusBarItem.show();
         }
     } else {
-        statusBarItem.hide(); // Hide if file doesn't exist
+        // Fallback to default behavior
+        const config = vscode.workspace.getConfiguration('flutterCoverage');
+        const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
+        const filePath = path.join(workspaceRoot, relativePath);
+
+        if (fs.existsSync(filePath)) {
+            try {
+                const data = await LcovParser.parse(filePath);
+                statusBarItem.text = `$(check) Cov: ${data.overall.percentage}%`;
+                statusBarItem.tooltip = `Lines Hit: ${data.overall.linesHit} / ${data.overall.linesFound}`;
+                statusBarItem.show();
+            } catch (error) {
+                console.error('Error parsing coverage file:', error);
+                statusBarItem.text = `$(error) Cov: Error`;
+                statusBarItem.tooltip = 'Error parsing lcov.info';
+                statusBarItem.show();
+            }
+        } else {
+            statusBarItem.hide(); // Hide if file doesn't exist
+        }
     }
 }
 
 export function deactivate() { }
-
-

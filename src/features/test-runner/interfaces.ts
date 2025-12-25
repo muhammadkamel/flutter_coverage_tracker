@@ -49,3 +49,16 @@ export interface IFileWatcher {
      */
     onDidChange: vscode.Event<void>;
 }
+
+export interface TestSuggestion {
+    file: string;
+    fileName: string;
+    priority: 'high' | 'medium' | 'low';
+    priorityScore: number;
+    uncoveredCount: number;
+    coveragePercentage: number;
+    complexity: 'simple' | 'moderate' | 'complex';
+    suggestions: string[];
+    sourceFile: string; // Path to source file for navigation
+}
+

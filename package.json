@@ -3,7 +3,7 @@
   "publisher": "muhammadkamel",
   "displayName": "Flutter Coverage Tracker",
   "description": "Tracks and displays Flutter test coverage in the status bar.",
-  "version": "0.12.0",
+  "version": "0.15.0",
   "icon": "resources/icons/flutter_coverage_tracker_logo.png",
   "repository": {
     "type": "git",
@@ -35,6 +35,51 @@
         "command": "flutter-coverage-tracker.showDetails",
         "title": "Show Coverage Details",
         "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.runTestsAndroid",
+        "title": "Run Tests (Android)",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.runTestsIOS",
+        "title": "Run Tests (iOS)",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.runTestsWeb",
+        "title": "Run Tests (Web)",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.runTestsDesktop",
+        "title": "Run Tests (Desktop)",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.switchPlatform",
+        "title": "Switch Coverage Platform",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.viewHistory",
+        "title": "View Coverage History",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.recordSnapshot",
+        "title": "Record Coverage Snapshot",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.exportHistory",
+        "title": "Export Coverage History",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.clearHistory",
+        "title": "Clear Coverage History",
+        "category": "Flutter Coverage"
       }
     ],
     "configuration": {
@@ -55,6 +100,72 @@
             ".freezed.dart"
           ],
           "description": "File extensions to exclude from automatic test generation (e.g., generated files from build_runner)."
+        },
+        "flutterCoverage.showGutterCoverage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show coverage indicators in the editor gutter."
+        },
+        "flutterCoverage.coveredGutterStyle": {
+          "type": "string",
+          "enum": [
+            "green",
+            "blue"
+          ],
+          "default": "green",
+          "description": "Color style for covered lines in the gutter."
+        },
+        "flutterCoverage.uncoveredGutterStyle": {
+          "type": "string",
+          "enum": [
+            "red",
+            "orange"
+          ],
+          "default": "red",
+          "description": "Color style for uncovered lines in the gutter."
+        },
+        "flutterCoverage.defaultPlatform": {
+          "type": "string",
+          "enum": [
+            "all",
+            "android",
+            "ios",
+            "web",
+            "desktop"
+          ],
+          "default": "all",
+          "description": "Default platform for coverage display."
+        },
+        "flutterCoverage.platformCoveragePaths": {
+          "type": "object",
+          "default": {
+            "android": "coverage/android/lcov.info",
+            "ios": "coverage/ios/lcov.info",
+            "web": "coverage/web/lcov.info",
+            "desktop": "coverage/desktop/lcov.info",
+            "all": "coverage/lcov.info"
+          },
+          "description": "Coverage file paths for each platform."
+        },
+        "flutterCoverage.historyEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable coverage history tracking."
+        },
+        "flutterCoverage.historyRetentionDays": {
+          "type": "number",
+          "default": 90,
+          "description": "Number of days to retain coverage history."
+        },
+        "flutterCoverage.historyAutoRecord": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically record snapshots on coverage updates."
+        },
+        "flutterCoverage.historyMaxSnapshots": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum number of snapshots to keep."
         }
       }
     },

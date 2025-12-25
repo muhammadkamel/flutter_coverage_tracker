@@ -274,6 +274,24 @@ export class PlatformCoverageManager {
         return Object.values(Platform);
     }
 
+    public getCoverageForFile(filePath: string): FileCoverageData | undefined {
+        const data = this.platformData.get(this.currentPlatform)?.data;
+        if (!data) {
+            return undefined;
+        }
+
+        // Try exact match
+        let fileCoverage = data.files.find(f => filePath.endsWith(f.file));
+
+        // Try strict relative match if we can resolve workspace root
+        if (!fileCoverage) {
+            // Heuristic: check if f.file part is contained in filePath
+            fileCoverage = data.files.find(f => filePath.includes(f.file));
+        }
+
+        return fileCoverage;
+    }
+
     public dispose(): void {
         this.onPlatformChangeEmitter.dispose();
     }

@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
 import { WebviewComponents } from './WebviewComponents';
+import { SuiteCoverageWebviewRenderer } from '../suite-coverage/SuiteCoverageWebviewRenderer';
+import { SuiteCoverageDashboardGenerator } from '../suite-coverage/SuiteCoverageDashboardGenerator';
 
 export class MultiTestWebviewGenerator {
     public static getWebviewContent(folderName: string, styleSrc: vscode.Uri, suggestions: any[] = []): string {
+        const suiteCoverageStyles = SuiteCoverageWebviewRenderer.getStyles();
+        const suiteCoverageScript = SuiteCoverageDashboardGenerator.getSuiteCoverageScript();
+
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,6 +38,51 @@ export class MultiTestWebviewGenerator {
             animation: shimmer 2s infinite linear;
         }
 
+        /* Tab Styles */
+        .tabs {
+            display: flex;
+            gap: 2rem;
+            border-bottom: 1px solid var(--vscode-widget-border);
+            margin-bottom: 2rem;
+            padding-bottom: 2px;
+        }
+        
+        .tab-btn {
+            padding: 0.5rem 0;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            opacity: 0.6;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--vscode-foreground);
+            position: relative;
+        }
+        
+        .tab-btn:hover {
+            opacity: 1;
+            color: var(--vscode-textLink-activeForeground);
+        }
+        
+        .tab-btn.active {
+            opacity: 1;
+            border-bottom-color: var(--vscode-textLink-activeForeground);
+            color: var(--vscode-textLink-activeForeground);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
         .scrollbox::-webkit-scrollbar { width: 6px; }
         .scrollbox::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
@@ -40,6 +90,7 @@ export class MultiTestWebviewGenerator {
         .folder-icon { transition: transform 0.2s; display: inline-block; }
         .folder-expanded .folder-icon { transform: rotate(90deg); }
         ${WebviewComponents.getScrollToTopStyles()}
+        ${suiteCoverageStyles}
     </style>
 </head>
 <body class="bg-vscode-editor-bg text-vscode-fg p-6 font-sans antialiased selection:bg-indigo-500/30">
@@ -79,29 +130,37 @@ export class MultiTestWebviewGenerator {
             </div>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-vscode-bg rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift">
-                <div class="text-3xl font-bold mb-1" id="total-tests">--</div>
-                <div class="text-xs uppercase opacity-60 tracking-widest">Total Files</div>
-            </div>
-            <div class="bg-vscode-bg rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift">
-                <div class="text-3xl font-bold mb-1 text-green-400" id="passed-count">0</div>
-                <div class="text-xs uppercase opacity-60 tracking-widest">Passed</div>
-            </div>
-            <div class="bg-vscode-bg rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift">
-                <div class="text-3xl font-bold mb-1 text-red-400" id="failed-count">0</div>
-                <div class="text-xs uppercase opacity-60 tracking-widest">Failed</div>
-            </div>
-            <div class="bg-vscode-bg rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift">
-                <div class="text-3xl font-bold mb-1" id="overall-coverage">--%</div>
-                <div class="text-xs uppercase opacity-60 tracking-widest">Avg Coverage</div>
-            </div>
-        </div>
+        <!-- Tabs Navigation -->
+        <nav class="tabs">
+            <div class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</div>
+            <div class="tab-btn" data-tab="coverage" onclick="switchTab('coverage')">Suite Coverage</div>
+            <div class="tab-btn" data-tab="insights" onclick="switchTab('insights')">Insights & Logs</div>
+        </nav>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Tab: Overview -->
+        <div id="tab-overview" class="tab-content active space-y-6">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift border-t-4 border-t-blue-500" style="background: var(--vscode-editorWidget-background)">
+                    <div class="text-3xl font-bold mb-1" id="total-tests">--</div>
+                    <div class="text-xs uppercase opacity-60 tracking-widest">Total Files</div>
+                </div>
+                <div class="rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift border-t-4 border-t-green-500" style="background: var(--vscode-editorWidget-background)">
+                    <div class="text-3xl font-bold mb-1 text-green-500" id="passed-count">0</div>
+                    <div class="text-xs uppercase opacity-60 tracking-widest">Passed</div>
+                </div>
+                <div class="rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift border-t-4 border-t-red-500" style="background: var(--vscode-editorWidget-background)">
+                    <div class="text-3xl font-bold mb-1 text-red-500" id="failed-count">0</div>
+                    <div class="text-xs uppercase opacity-60 tracking-widest">Failed</div>
+                </div>
+                <div class="rounded-2xl p-6 shadow-xl border border-vscode-border/20 text-center hover-lift border-t-4 border-t-purple-500" style="background: var(--vscode-editorWidget-background)">
+                    <div class="text-3xl font-bold mb-1" id="overall-coverage">--%</div>
+                    <div class="text-xs uppercase opacity-60 tracking-widest">Avg Coverage</div>
+                </div>
+            </div>
+
             <!-- File List -->
-            <div class="lg:col-span-2 bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20">
+            <div class="bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-lg font-bold flex items-center gap-2">
                         <span class="text-xl">📄</span>
@@ -135,25 +194,35 @@ export class MultiTestWebviewGenerator {
                     </table>
                 </div>
             </div>
-
-            <!-- Console Card -->
-            <div class="bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20 flex flex-col max-h-[600px]">
-                <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span class="text-xl">📝</span>
-                    <span>Console Output</span>
-                </h2>
-                <div id="output" class="flex-1 bg-black/60 border border-vscode-border/50 p-4 rounded-xl overflow-y-auto font-mono text-xs text-gray-400 leading-relaxed scrollbox"></div>
-            </div>
         </div>
 
-        <!-- Smart Test Suggestions Card -->
-        <div class="bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20">
-            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <span class="text-xl">🎯</span>
-                <span>Smart Test Suggestions</span>
-            </h2>
-            <div id="suggestions-container" class="space-y-3 max-h-[500px] overflow-y-auto scrollbox">
-                <div class="text-sm opacity-50 text-center py-8">Analyzing coverage...</div>
+        <!-- Tab: Suite Coverage -->
+        <div id="tab-coverage" class="tab-content">
+            <div id="suite-coverage-container"></div>
+        </div>
+
+        <!-- Tab: Insights -->
+        <div id="tab-insights" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Smart Test Suggestions Card -->
+                <div class="bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <span class="text-xl">🎯</span>
+                        <span>Smart Test Suggestions</span>
+                    </h2>
+                    <div id="suggestions-container" class="space-y-3 max-h-[600px] overflow-y-auto scrollbox">
+                        <div class="text-sm opacity-50 text-center py-8">Analyzing coverage...</div>
+                    </div>
+                </div>
+
+                <!-- Console Card -->
+                <div class="bg-vscode-bg rounded-2xl p-6 shadow-2xl border border-vscode-border/20 flex flex-col max-h-[600px]">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <span class="text-xl">📝</span>
+                        <span>Console Output</span>
+                    </h2>
+                    <div id="output" class="flex-1 bg-black/60 border border-vscode-border/50 p-4 rounded-xl overflow-y-auto font-mono text-xs text-gray-400 leading-relaxed scrollbox"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -162,6 +231,7 @@ ${WebviewComponents.getScrollToTopButton()}
 
     <script>
         const vscode = acquireVsCodeApi();
+        window.vscode = vscode;
         const outputDiv = document.getElementById('output');
         const fileListBody = document.getElementById('file-list-body');
         const statusBadge = document.getElementById('status-badge');
@@ -227,6 +297,13 @@ ${WebviewComponents.getScrollToTopButton()}
 
                 case 'suggestions':
                     renderSuggestions(message.suggestions);
+                    break;
+
+                case 'update-suite-coverage':
+                    document.getElementById('suite-coverage-container').innerHTML = message.html;
+                    if (window.initSuiteCoverage) {
+                        window.initSuiteCoverage();
+                    }
                     break;
             }
         });
@@ -543,6 +620,20 @@ ${WebviewComponents.getScrollToTopButton()}
                 behavior: 'smooth'
             });
         });
+
+        window.switchTab = function(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // Remove active state from buttons
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            // Show target content
+            document.getElementById('tab-' + tabId).classList.add('active');
+            // Activate button
+            document.querySelector('.tab-btn[data-tab="' + tabId + '"]').classList.add('active');
+        };
+
+        ${suiteCoverageScript}
     </script>
 </body>
 </html>`;

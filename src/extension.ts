@@ -16,6 +16,11 @@ import { CoverageGutterProvider } from './features/coverage-gutters/CoverageGutt
 import { PlatformCoverageManager, Platform } from './features/platform-coverage/PlatformCoverageManager';
 import { CoverageHistoryManager } from './features/coverage-history/CoverageHistoryManager';
 import { HistoryWebviewGenerator } from './features/coverage-history/HistoryWebviewGenerator';
+import { SuiteCoverageDashboardGenerator } from './features/suite-coverage/SuiteCoverageDashboardGenerator';
+import { SuiteCoverageData, FileCoverage } from './features/suite-coverage/types';
+import { CoverageCodeLensProvider } from './features/codelens/CoverageCodeLensProvider';
+import { CoverageFileDecorationProvider } from './features/decorations/CoverageFileDecorationProvider';
+import { DiffCoverageManager } from './features/diff-coverage/DiffCoverageManager';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -57,6 +62,61 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Initialize Coverage History Manager
     const historyManager = new CoverageHistoryManager(context);
+
+    // Initialize Code Lens Provider
+    const codeLensProvider = new CoverageCodeLensProvider(platformManager);
+    context.subscriptions.push(
+        vscode.languages.registerCodeLensProvider(
+            { scheme: 'file', language: 'dart' },
+            codeLensProvider
+        )
+    );
+
+    // Initialize File Decoration Provider
+    const fileDecorationProvider = new CoverageFileDecorationProvider(platformManager);
+    context.subscriptions.push(
+        vscode.window.registerFileDecorationProvider(fileDecorationProvider)
+    );
+
+    // Initialize Diff Coverage Manager
+    const diffCoverageManager = new DiffCoverageManager(platformManager);
+
+    // Command: Show Diff Coverage
+    context.subscriptions.push(
+        vscode.commands.registerCommand('flutter-coverage-tracker.showFileDiffCoverage', async (uri?: vscode.Uri) => {
+            let targetUri = uri;
+            if (!targetUri) {
+                const editor = vscode.window.activeTextEditor;
+                if (!editor) {
+                    vscode.window.showErrorMessage('No active editor found.');
+                    return;
+                }
+                targetUri = editor.document.uri;
+            }
+
+            if (!targetUri.fsPath.endsWith('.dart')) {
+                vscode.window.showErrorMessage('Diff coverage only available for Dart files.');
+                return;
+            }
+
+            try {
+                const result = await diffCoverageManager.getDiffCoverageForFile(targetUri.fsPath);
+                if (result) {
+                    if (result.linesChanged === 0) {
+                        vscode.window.showInformationMessage(`No changes detected in ${path.basename(result.file)} vs HEAD.`);
+                    } else {
+                        const icon = result.percentage >= 80 ? '$(check)' : result.percentage >= 50 ? '$(warning)' : '$(error)';
+                        vscode.window.showInformationMessage(`${icon} Diff Coverage: ${result.percentage}% (${result.linesCovered}/${result.linesChanged} changed lines covered)`);
+                    }
+                } else {
+                    vscode.window.showWarningMessage('No coverage data found for this file.');
+                }
+            } catch (e) {
+                console.error(e);
+                vscode.window.showErrorMessage('Error calculating diff coverage.');
+            }
+        })
+    );
 
     // Command: Run Related Test
     let runTestDisposable = vscode.commands.registerCommand('flutter-coverage-tracker.runRelatedTest', async (uri?: vscode.Uri) => {
@@ -304,6 +364,115 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             updateCoverage(); // Update status bar
+
+            // Generate and send suite coverage data
+            try {
+                const suiteGenerator = new SuiteCoverageDashboardGenerator();
+                const suitesMap = new Map<string, SuiteCoverageData>();
+                const allCoveredFiles = new Map<string, FileCoverage>();
+                let totalLines = 0;
+                let totalCoveredLines = 0;
+
+                // Process each test result into a SuiteCoverageData
+                for (const result of folderResults) {
+                    if (!result.success || !result.coverage) continue;
+
+                    const suiteName = result.name;
+                    const fileCoverage = result.coverage;
+
+                    // Create FileCoverage object for the source file
+                    const coveredFiles = new Map<string, FileCoverage>();
+
+                    // In the current simplified model, each test covers primarily one source file
+                    // or we only have data for that one file from our deducrion logic.
+                    if (result.sourceFile) {
+                        const fileCov: FileCoverage = {
+                            filePath: result.sourceFile,
+                            totalLines: fileCoverage.linesFound,
+                            coveredLines: [], // We don't have the exact line numbers readily available in simple coverage object yet without re-parsing?
+                            // Wait, LcovParser result.files has uncoveredLines.
+                            // The match.fileCoverage in folderResults logic came from LcovParser.
+                            // Let's check what match.fileCoverage is.
+                            // It is FileCoverageData interface from Coverage.ts (linesFound, linesHit, percentage, uncoveredLines)
+
+                            // We need to reconstruct covered lines if we want them, or just use what we have.
+                            // SuiteCoverageData expects 'coveredLines' as array of numbers in FileCoverage.
+                            // But FileCoverageData from LcovParser has 'uncoveredLines'. 
+                            // We can approximate or just pass what we have if the types align?
+                            // types.ts: FileCoverage has coveredLines: number[] and uncoveredLines: number[].
+
+                            // Let's look at what we have in folderResults entry:
+                            // coverage: { file: string, linesFound: number, linesHit: number, percentage: number, uncoveredLines: number[] }
+
+                            uncoveredLines: fileCoverage.uncoveredLines || [],
+                            coveragePercent: fileCoverage.percentage,
+                            hitCounts: new Map() // We don't have hit counts in the simple parser result
+                        } as any;
+
+                        // We need to polyfill coveredLines since we only have uncoveredLines
+                        // This is tricky without knowing the max line number or all line numbers. 
+                        // But wait, we have linesFound (total executbale lines).
+                        // Actually we can't easily guess which lines are covered without the full LCOV data again.
+                        // However, for the dashboard summary, we might not need the exact line numbers list for *covered* lines, 
+                        // just the counts.
+                        // Let's check SuiteCoverageDashboardGenerator usage.
+                        // It uses: suite.coveragePercent, suite.coveredLines (number), suite.totalLines (number), suite.coveredFiles.
+                        // And for file list: coverage.coveragePercent.
+                        // It doesn't seem to iterate over coveredLines array for rendering.
+                        // So we can casting as any or providing empty array for coveredLines might be safe for now,
+                        // assuming strict null checks don't fail.
+
+                        fileCov.coveredLines = []; // Placeholder
+
+                        coveredFiles.set(result.sourceFile, fileCov);
+                        allCoveredFiles.set(result.sourceFile, fileCov);
+
+                        totalLines += fileCov.totalLines;
+                        totalCoveredLines += fileCov.totalLines - fileCov.uncoveredLines.length; // Approximation of covered count
+                    }
+
+                    const suiteData: SuiteCoverageData = {
+                        suiteName: suiteName,
+                        suitePath: result.path,
+                        totalLines: fileCoverage.linesFound,
+                        coveredLines: fileCoverage.linesHit,
+                        coveragePercent: fileCoverage.percentage,
+                        coveredFiles: coveredFiles,
+                        lastRun: new Date()
+                    };
+
+                    suitesMap.set(suiteName, suiteData);
+                }
+
+                // Calculate aggregate
+                // We'll just sum up what we have
+                let aggTotalLines = 0;
+                let aggCoveredLines = 0;
+                for (const s of suitesMap.values()) {
+                    aggTotalLines += s.totalLines;
+                    aggCoveredLines += s.coveredLines;
+                }
+                const aggCoverage = aggTotalLines > 0 ? (aggCoveredLines / aggTotalLines) * 100 : 0;
+
+                const aggregate = {
+                    suites: suitesMap,
+                    totalCoveragePercent: aggCoverage,
+                    totalLines: aggTotalLines,
+                    totalCoveredLines: aggCoveredLines,
+                    uncoveredFiles: [], // We can't easily know this without full project scan
+                    analyzedAt: new Date()
+                };
+
+                const html = suiteGenerator.generateSuiteCoverageSection(suitesMap, aggregate);
+
+                panel.webview.postMessage({
+                    type: 'update-suite-coverage',
+                    html: html
+                });
+
+            } catch (error) {
+                console.error('Error generating suite coverage:', error);
+            }
         });
 
         panel.webview.onDidReceiveMessage(async message => {
@@ -311,6 +480,18 @@ export function activate(context: vscode.ExtensionContext) {
                 testRunner.run(testFolderPath, workspaceRoot);
             } else if (message.type === 'cancel') {
                 testRunner.cancel();
+            } else if (message.type === 'viewSuiteFiles') {
+                // suiteName is usually the relative path to the test file
+                const suitePath = path.isAbsolute(message.suiteName)
+                    ? message.suiteName
+                    : path.join(workspaceRoot, message.suiteName);
+
+                if (fs.existsSync(suitePath)) {
+                    const doc = await vscode.workspace.openTextDocument(suitePath);
+                    await vscode.window.showTextDocument(doc);
+                } else {
+                    vscode.window.showErrorMessage(`Could not find test file: ${message.suiteName}`);
+                }
             } else if (message.type === 'navigateToLine') {
                 const filePath = path.join(workspaceRoot, message.file);
                 if (fs.existsSync(filePath)) {

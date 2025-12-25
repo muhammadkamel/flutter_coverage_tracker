@@ -3,7 +3,7 @@
   "publisher": "muhammadkamel",
   "displayName": "Flutter Coverage Tracker",
   "description": "Tracks and displays Flutter test coverage in the status bar.",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "icon": "resources/icons/flutter_coverage_tracker_logo.png",
   "repository": {
     "type": "git",
@@ -34,6 +34,11 @@
       {
         "command": "flutter-coverage-tracker.showDetails",
         "title": "Show Coverage Details",
+        "category": "Flutter Coverage"
+      },
+      {
+        "command": "flutter-coverage-tracker.showFileDiffCoverage",
+        "title": "Show Diff Coverage (New Code)",
         "category": "Flutter Coverage"
       },
       {
@@ -166,6 +171,16 @@
           "type": "number",
           "default": 1000,
           "description": "Maximum number of snapshots to keep."
+        },
+        "flutterCoverage.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Code Lens for coverage statistics and test running."
+        },
+        "flutterCoverage.enableExplorerDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable file explorer decorations for coverage status."
         }
       }
     },
@@ -232,5 +247,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.1.3",
     "vsce": "^1.103.1"
+  },
+  "dependencies": {
+    "ts-pattern": "^5.9.0"
   }
 }

@@ -1,37 +1,5 @@
 # Changelog
 
-## [0.17.0] - 2025-12-25
-
-### Added
-
-- **Feature**: Coverage History & Trends
-  - Historical coverage tracking with timestamps
-  - Interactive Chart.js visualization showing coverage over time
-  - Trend indicators (↗️ improving, ↘️ declining, → stable)
-  - Statistics dashboard (current, peak, low, average coverage)
-  - Local data persistence using VS Code WorkspaceState
-  - Automatic snapshot recording on coverage updates
-  - Manual snapshot capture command
-  - Export history to JSON or CSV
-  - Recent snapshots table with platform badges
-  - Automatic data pruning based on retention settings
-
-### Configuration
-
-- Added `flutterCoverage.historyEnabled` to enable/disable tracking
-- Added `flutterCoverage.historyRetentionDays` to set retention period (default: 90 days)
-- Added `flutterCoverage.historyAutoRecord` to enable auto-recording
-- Added `flutterCoverage.historyMaxSnapshots` to limit snapshot count (default: 1000)
-
-### Commands
-
-- View Coverage History - `flutter-coverage-tracker.viewHistory`
-- Record Coverage Snapshot - `flutter-coverage-tracker.recordSnapshot`
-- Export Coverage History - `flutter-coverage-tracker.exportHistory`
-- Clear Coverage History - `flutter-coverage-tracker.clearHistory`
-
----
-
 ## [0.16.0] - 2025-12-25
 
 ### Added

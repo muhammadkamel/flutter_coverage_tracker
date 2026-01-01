@@ -5,10 +5,7 @@ import { CoverageHistoryManager, CoverageSnapshot, CoverageTrend, HistoryStats }
  * Generates HTML content for the coverage history dashboard
  */
 export class HistoryWebviewGenerator {
-    public static getWebviewContent(
-        historyManager: CoverageHistoryManager,
-        timeRange: number = 30
-    ): string {
+    public static getWebviewContent(historyManager: CoverageHistoryManager, timeRange: number = 30): string {
         const chartData = historyManager.getChartData(timeRange);
         const stats = historyManager.getStats();
         const trend = historyManager.getTrend(timeRange);
@@ -153,7 +150,11 @@ export class HistoryWebviewGenerator {
     private static renderStats(stats: HistoryStats, trend: CoverageTrend | null): string {
         const trendClass = trend ? trend.direction : 'stable';
         const trendIcon = trend
-            ? (trend.direction === 'improving' ? '↗️' : trend.direction === 'declining' ? '↘️' : '→')
+            ? trend.direction === 'improving'
+                ? '↗️'
+                : trend.direction === 'declining'
+                  ? '↘️'
+                  : '→'
             : '→';
         const trendText = trend
             ? `${trendIcon} ${trend.change > 0 ? '+' : ''}${trend.change}% (${trend.timespan})`
@@ -181,7 +182,7 @@ export class HistoryWebviewGenerator {
         `;
     }
 
-    private static renderChart(chartData: { labels: string[], data: number[] }): string {
+    private static renderChart(chartData: { labels: string[]; data: number[] }): string {
         return `
         <div class="chart-container">
             <h2>Coverage Over Time</h2>
@@ -191,9 +192,10 @@ export class HistoryWebviewGenerator {
     }
 
     private static renderSnapshotsTable(snapshots: CoverageSnapshot[]): string {
-        const rows = snapshots.map(s => {
-            const date = new Date(s.timestamp).toLocaleString();
-            return `
+        const rows = snapshots
+            .map(s => {
+                const date = new Date(s.timestamp).toLocaleString();
+                return `
             <tr>
                 <td>${date}</td>
                 <td>${s.overallPercentage}%</td>
@@ -201,7 +203,8 @@ export class HistoryWebviewGenerator {
                 <td><span class="platform-badge">${this.getPlatformIcon(s.platform)} ${s.platform}</span></td>
             </tr>
             `;
-        }).join('');
+            })
+            .join('');
 
         return `
         <h2>Recent Snapshots</h2>
@@ -221,7 +224,7 @@ export class HistoryWebviewGenerator {
         `;
     }
 
-    private static getChartScript(chartData: { labels: string[], data: number[] }): string {
+    private static getChartScript(chartData: { labels: string[]; data: number[] }): string {
         return `
         const ctx = document.getElementById('coverageChart');
         new Chart(ctx, {
@@ -269,12 +272,18 @@ export class HistoryWebviewGenerator {
 
     private static getPlatformIcon(platform: string): string {
         switch (platform.toLowerCase()) {
-            case 'android': return '📱';
-            case 'ios': return '🍎';
-            case 'web': return '🌐';
-            case 'desktop': return '💻';
-            case 'all': return '📊';
-            default: return '📋';
+            case 'android':
+                return '📱';
+            case 'ios':
+                return '🍎';
+            case 'web':
+                return '🌐';
+            case 'desktop':
+                return '💻';
+            case 'all':
+                return '📊';
+            default:
+                return '📋';
         }
     }
 }

@@ -6,7 +6,7 @@ suite('SidebarHtmlGenerator Test Suite', () => {
         asWebviewUri: (uri: any) => uri,
         options: {},
         html: '',
-        onDidReceiveMessage: () => ({ dispose: () => { } }),
+        onDidReceiveMessage: () => ({ dispose: () => {} }),
         postMessage: () => Promise.resolve(true),
         cspSource: ''
     };
@@ -14,7 +14,7 @@ suite('SidebarHtmlGenerator Test Suite', () => {
     const mockExtensionUri = {
         fsPath: '/ext',
         toString: () => '/ext',
-        toJSON: () => { }
+        toJSON: () => {}
     } as any;
 
     test('getWebviewContent generates HTML with correct stats', () => {

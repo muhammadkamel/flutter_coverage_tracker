@@ -136,18 +136,19 @@ suite('SuiteCoverageDashboardGenerator Test Suite', () => {
             };
 
             const html = generator.generateSuiteCoverageSection(suites, aggregate);
+            const script = SuiteCoverageDashboardGenerator.getSuiteCoverageScript();
 
-            // Should include filter function
-            assert.ok(html.includes('filterSuites'));
+            // Should include filter function in script
+            assert.ok(script.includes('filterSuites'));
 
-            // Should include sort function
-            assert.ok(html.includes('sortSuites'));
+            // Should include sort function in script
+            assert.ok(script.includes('sortSuites'));
 
-            // Should include toggle function
-            assert.ok(html.includes('toggleSuiteDetails'));
+            // Should include toggle function in script
+            assert.ok(script.includes('toggleSuiteDetails'));
 
-            // Should include vscode message posting
-            assert.ok(html.includes('vscode.postMessage'));
+            // Should include vscode message posting in script
+            assert.ok(script.includes('vscode.postMessage'));
         });
 
         test('should include CSS styles', () => {
@@ -192,13 +193,16 @@ suite('SuiteCoverageDashboardGenerator Test Suite', () => {
 
         test('should display file list for each suite', () => {
             const coveredFiles = new Map<string, FileCoverage>([
-                ['lib/service.dart', {
-                    filePath: 'lib/service.dart',
-                    totalLines: 50,
-                    coveredLines: [1, 2, 3],
-                    uncoveredLines: [4, 5],
-                    coveragePercent: 60
-                }]
+                [
+                    'lib/service.dart',
+                    {
+                        filePath: 'lib/service.dart',
+                        totalLines: 50,
+                        coveredLines: [1, 2, 3],
+                        uncoveredLines: [4, 5],
+                        coveragePercent: 60
+                    }
+                ]
             ]);
 
             const suite: SuiteCoverageData = {
@@ -233,7 +237,7 @@ suite('SuiteCoverageDashboardGenerator Test Suite', () => {
 
 function createMockSuite(name: string, coveragePercent: number): SuiteCoverageData {
     const totalLines = 100;
-    const coveredLines = Math.floor(totalLines * coveragePercent / 100);
+    const coveredLines = Math.floor((totalLines * coveragePercent) / 100);
 
     return {
         suiteName: name,

@@ -141,23 +141,29 @@ end_of_record`;
     suite('mergeCoverage', () => {
         test('should merge coverage from multiple maps', () => {
             const map1 = new Map<string, FileCoverage>([
-                ['lib/file.dart', {
-                    filePath: 'lib/file.dart',
-                    totalLines: 3,
-                    coveredLines: [1, 2],
-                    uncoveredLines: [3],
-                    coveragePercent: 66.67
-                }]
+                [
+                    'lib/file.dart',
+                    {
+                        filePath: 'lib/file.dart',
+                        totalLines: 3,
+                        coveredLines: [1, 2],
+                        uncoveredLines: [3],
+                        coveragePercent: 66.67
+                    }
+                ]
             ]);
 
             const map2 = new Map<string, FileCoverage>([
-                ['lib/file.dart', {
-                    filePath: 'lib/file.dart',
-                    totalLines: 3,
-                    coveredLines: [2, 3],
-                    uncoveredLines: [1],
-                    coveragePercent: 66.67
-                }]
+                [
+                    'lib/file.dart',
+                    {
+                        filePath: 'lib/file.dart',
+                        totalLines: 3,
+                        coveredLines: [2, 3],
+                        uncoveredLines: [1],
+                        coveragePercent: 66.67
+                    }
+                ]
             ]);
 
             const merged = parser.mergeCoverage([map1, map2]);
@@ -172,25 +178,37 @@ end_of_record`;
 
         test('should merge hit counts correctly', () => {
             const map1 = new Map<string, FileCoverage>([
-                ['lib/file.dart', {
-                    filePath: 'lib/file.dart',
-                    totalLines: 2,
-                    coveredLines: [1, 2],
-                    uncoveredLines: [],
-                    coveragePercent: 100,
-                    hitCounts: new Map([[1, 5], [2, 3]])
-                }]
+                [
+                    'lib/file.dart',
+                    {
+                        filePath: 'lib/file.dart',
+                        totalLines: 2,
+                        coveredLines: [1, 2],
+                        uncoveredLines: [],
+                        coveragePercent: 100,
+                        hitCounts: new Map([
+                            [1, 5],
+                            [2, 3]
+                        ])
+                    }
+                ]
             ]);
 
             const map2 = new Map<string, FileCoverage>([
-                ['lib/file.dart', {
-                    filePath: 'lib/file.dart',
-                    totalLines: 2,
-                    coveredLines: [1, 2],
-                    uncoveredLines: [],
-                    coveragePercent: 100,
-                    hitCounts: new Map([[1, 3], [2, 2]])
-                }]
+                [
+                    'lib/file.dart',
+                    {
+                        filePath: 'lib/file.dart',
+                        totalLines: 2,
+                        coveredLines: [1, 2],
+                        uncoveredLines: [],
+                        coveragePercent: 100,
+                        hitCounts: new Map([
+                            [1, 3],
+                            [2, 2]
+                        ])
+                    }
+                ]
             ]);
 
             const merged = parser.mergeCoverage([map1, map2]);
@@ -202,23 +220,29 @@ end_of_record`;
 
         test('should merge different files', () => {
             const map1 = new Map<string, FileCoverage>([
-                ['lib/file1.dart', {
-                    filePath: 'lib/file1.dart',
-                    totalLines: 1,
-                    coveredLines: [1],
-                    uncoveredLines: [],
-                    coveragePercent: 100
-                }]
+                [
+                    'lib/file1.dart',
+                    {
+                        filePath: 'lib/file1.dart',
+                        totalLines: 1,
+                        coveredLines: [1],
+                        uncoveredLines: [],
+                        coveragePercent: 100
+                    }
+                ]
             ]);
 
             const map2 = new Map<string, FileCoverage>([
-                ['lib/file2.dart', {
-                    filePath: 'lib/file2.dart',
-                    totalLines: 1,
-                    coveredLines: [1],
-                    uncoveredLines: [],
-                    coveragePercent: 100
-                }]
+                [
+                    'lib/file2.dart',
+                    {
+                        filePath: 'lib/file2.dart',
+                        totalLines: 1,
+                        coveredLines: [1],
+                        uncoveredLines: [],
+                        coveragePercent: 100
+                    }
+                ]
             ]);
 
             const merged = parser.mergeCoverage([map1, map2]);
@@ -267,10 +291,7 @@ end_of_record`;
                 ['lib/player/c.dart', createMockCoverage('lib/player/c.dart')]
             ]);
 
-            const filtered = parser.filterByFiles(coverage, [
-                'lib/downloads/*',
-                'lib/auth/*'
-            ]);
+            const filtered = parser.filterByFiles(coverage, ['lib/downloads/*', 'lib/auth/*']);
 
             assert.strictEqual(filtered.size, 2);
         });
@@ -279,20 +300,26 @@ end_of_record`;
     suite('calculateTotalCoverage', () => {
         test('should calculate total coverage across files', () => {
             const coverage = new Map<string, FileCoverage>([
-                ['file1.dart', {
-                    filePath: 'file1.dart',
-                    totalLines: 10,
-                    coveredLines: [1, 2, 3, 4, 5, 6, 7, 8],
-                    uncoveredLines: [9, 10],
-                    coveragePercent: 80
-                }],
-                ['file2.dart', {
-                    filePath: 'file2.dart',
-                    totalLines: 10,
-                    coveredLines: [1, 2, 3, 4, 5, 6],
-                    uncoveredLines: [7, 8, 9, 10],
-                    coveragePercent: 60
-                }]
+                [
+                    'file1.dart',
+                    {
+                        filePath: 'file1.dart',
+                        totalLines: 10,
+                        coveredLines: [1, 2, 3, 4, 5, 6, 7, 8],
+                        uncoveredLines: [9, 10],
+                        coveragePercent: 80
+                    }
+                ],
+                [
+                    'file2.dart',
+                    {
+                        filePath: 'file2.dart',
+                        totalLines: 10,
+                        coveredLines: [1, 2, 3, 4, 5, 6],
+                        uncoveredLines: [7, 8, 9, 10],
+                        coveragePercent: 60
+                    }
+                ]
             ]);
 
             const totals = parser.calculateTotalCoverage(coverage);
@@ -312,13 +339,16 @@ end_of_record`;
 
         test('should handle 100% coverage', () => {
             const coverage = new Map<string, FileCoverage>([
-                ['file.dart', {
-                    filePath: 'file.dart',
-                    totalLines: 5,
-                    coveredLines: [1, 2, 3, 4, 5],
-                    uncoveredLines: [],
-                    coveragePercent: 100
-                }]
+                [
+                    'file.dart',
+                    {
+                        filePath: 'file.dart',
+                        totalLines: 5,
+                        coveredLines: [1, 2, 3, 4, 5],
+                        uncoveredLines: [],
+                        coveragePercent: 100
+                    }
+                ]
             ]);
 
             const totals = parser.calculateTotalCoverage(coverage);

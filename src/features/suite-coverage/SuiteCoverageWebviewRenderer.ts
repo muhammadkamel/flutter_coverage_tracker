@@ -5,7 +5,6 @@
 import { match, P } from 'ts-pattern';
 
 export class SuiteCoverageWebviewRenderer {
-
     /**
      * Generate the HTML content for the suite coverage section
      */
@@ -73,14 +72,21 @@ export class SuiteCoverageWebviewRenderer {
     }
 
     private static generateSuitesTable(suites: any[]): string {
-        const rows = suites.map(suite => {
-            const coverageClass = match(suite.coveragePercent)
-                .when(p => p >= 90, () => 'high')
-                .when(p => p >= 70, () => 'medium')
-                .otherwise(() => 'low');
-            const safeId = suite.suiteName.replace(/[^a-zA-Z0-9]/g, '-');
+        const rows = suites
+            .map(suite => {
+                const coverageClass = match(suite.coveragePercent)
+                    .when(
+                        p => p >= 90,
+                        () => 'high'
+                    )
+                    .when(
+                        p => p >= 70,
+                        () => 'medium'
+                    )
+                    .otherwise(() => 'low');
+                const safeId = suite.suiteName.replace(/[^a-zA-Z0-9]/g, '-');
 
-            return `<tr>
+                return `<tr>
                 <td class="py-3 px-4">
                     <span class="font-medium cursor-pointer hover:text-blue-400" 
                           onclick="toggleSuiteDetails('suite-${safeId}')">
@@ -110,7 +116,8 @@ export class SuiteCoverageWebviewRenderer {
                     </div>
                 </td>
             </tr>`;
-        }).join('');
+            })
+            .join('');
 
         return rows;
     }
@@ -120,16 +127,24 @@ export class SuiteCoverageWebviewRenderer {
             return '<div class="text-xs opacity-50">No files</div>';
         }
 
-        return files.map(f => {
-            const coverageClass = match(f.coveragePercent)
-                .when(p => p >= 90, () => 'high')
-                .when(p => p >= 70, () => 'medium')
-                .otherwise(() => 'low');
-            return `<div class="flex justify-between items-center p-2 bg-black/20 rounded">
+        return files
+            .map(f => {
+                const coverageClass = match(f.coveragePercent)
+                    .when(
+                        p => p >= 90,
+                        () => 'high'
+                    )
+                    .when(
+                        p => p >= 70,
+                        () => 'medium'
+                    )
+                    .otherwise(() => 'low');
+                return `<div class="flex justify-between items-center p-2 bg-black/20 rounded">
                 <span class="font-mono text-xs">${f.filePath}</span>
                 <span class="text-xs suite-${coverageClass}">${f.coveragePercent.toFixed(1)}%</span>
             </div>`;
-        }).join('');
+            })
+            .join('');
     }
 
     public static getStyles(): string {

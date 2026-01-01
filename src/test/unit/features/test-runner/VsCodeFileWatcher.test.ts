@@ -32,7 +32,7 @@ suite('VsCodeFileWatcher Test Suite', () => {
         assert.ok(true, 'Should handle sequential watch calls');
     });
 
-    test('propagates change events from vscode watcher', (done) => {
+    test('propagates change events from vscode watcher', done => {
         watcher.onDidChange(() => {
             assert.ok(true);
             done();
@@ -41,7 +41,7 @@ suite('VsCodeFileWatcher Test Suite', () => {
         (global as any).lastCreatedWatcher._fire('change');
     });
 
-    test('propagates create events from vscode watcher', (done) => {
+    test('propagates create events from vscode watcher', done => {
         watcher.onDidChange(() => {
             assert.ok(true);
             done();
@@ -50,7 +50,7 @@ suite('VsCodeFileWatcher Test Suite', () => {
         (global as any).lastCreatedWatcher._fire('create');
     });
 
-    test('propagates delete events from vscode watcher', (done) => {
+    test('propagates delete events from vscode watcher', done => {
         watcher.onDidChange(() => {
             assert.ok(true);
             done();

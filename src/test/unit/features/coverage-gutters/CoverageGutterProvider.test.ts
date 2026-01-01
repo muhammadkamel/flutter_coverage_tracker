@@ -17,12 +17,12 @@ suite('CoverageGutterProvider Tests', () => {
         sandbox = sinon.createSandbox();
         context = {
             subscriptions: [],
-            extensionUri: vscode.Uri.file('/mock/path'),
+            extensionUri: vscode.Uri.file('/mock/path')
         } as any;
 
         // Mock VS Code configuration
         const config = {
-            get: sandbox.stub(),
+            get: sandbox.stub()
         };
         config.get.withArgs('coveredGutterStyle').returns('green');
         config.get.withArgs('uncoveredGutterStyle').returns('red');
@@ -51,21 +51,23 @@ suite('CoverageGutterProvider Tests', () => {
         sandbox.stub(vscode.window, 'visibleTextEditors').get(() => [activeEditor]);
 
         // Mock Workspace Folders
-        sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => [{
-            uri: { fsPath: '/workspace' },
-            index: 0,
-            name: 'workspace'
-        }]);
+        sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => [
+            {
+                uri: { fsPath: '/workspace' },
+                index: 0,
+                name: 'workspace'
+            }
+        ]);
 
         // Mock Decorations creation
-        sandbox.stub(vscode.window, 'createTextEditorDecorationType').callsFake(() => ({ dispose: () => { } } as any));
+        sandbox.stub(vscode.window, 'createTextEditorDecorationType').callsFake(() => ({ dispose: () => {} }) as any);
 
         // Mock FileSystemWatcher
         sandbox.stub(vscode.workspace, 'createFileSystemWatcher').returns({
-            onDidChange: () => { },
-            onDidCreate: () => { },
-            onDidDelete: () => { },
-            dispose: () => { }
+            onDidChange: () => {},
+            onDidCreate: () => {},
+            onDidDelete: () => {},
+            dispose: () => {}
         } as any);
 
         provider = new CoverageGutterProvider(context);
@@ -118,11 +120,13 @@ suite('CoverageGutterProvider Tests', () => {
 
         // Verify relative path calculation matches what we expect
         // We need to ensure workspaceFolders returns the corresponding root
-        const workspaceFoldersStub = sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => [{
-            uri: { fsPath: root },
-            index: 0,
-            name: 'workspace'
-        }]);
+        const workspaceFoldersStub = sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => [
+            {
+                uri: { fsPath: root },
+                index: 0,
+                name: 'workspace'
+            }
+        ]);
 
         const relPath = path.relative(root, filePath);
 
@@ -169,7 +173,7 @@ suite('CoverageGutterProvider Tests', () => {
             overall: { linesFound: 10, linesHit: 9, percentage: 90 }
         } as any);
 
-        // Trigger load via private method or re-initialization if possible, 
+        // Trigger load via private method or re-initialization if possible,
         // but loadCoverageData is private. It is called in constructor.
         // But constructor runs before we set up specific stubs (fs, LcovParser) if we are not careful.
         // Actually, we set up stubs in `setup` but `provider` is created at end of `setup`.

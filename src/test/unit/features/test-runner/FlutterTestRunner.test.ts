@@ -19,7 +19,7 @@ suite('FlutterTestRunner Test Suite', () => {
         mockChildProcess = new EventEmitter();
         mockChildProcess.stdout = new EventEmitter();
         mockChildProcess.stderr = new EventEmitter();
-        mockChildProcess.kill = () => { };
+        mockChildProcess.kill = () => {};
 
         // Mock spawn function
         const mockSpawn = (command: string, args: string[], options: any) => {
@@ -44,8 +44,8 @@ suite('FlutterTestRunner Test Suite', () => {
         assert.strictEqual(spawnCalledWith.options.cwd, '/root');
     });
 
-    test('emits output from stdout', (done) => {
-        runner.onTestOutput((data) => {
+    test('emits output from stdout', done => {
+        runner.onTestOutput(data => {
             assert.strictEqual(data, 'some output');
             done();
         });
@@ -54,8 +54,8 @@ suite('FlutterTestRunner Test Suite', () => {
         mockChildProcess.stdout.emit('data', 'some output');
     });
 
-    test('emits output from stderr', (done) => {
-        runner.onTestOutput((data) => {
+    test('emits output from stderr', done => {
+        runner.onTestOutput(data => {
             assert.strictEqual(data, 'error output');
             done();
         });
@@ -66,7 +66,9 @@ suite('FlutterTestRunner Test Suite', () => {
 
     test('cancel() kills the process', async () => {
         let killed = false;
-        mockChildProcess.kill = () => { killed = true; };
+        mockChildProcess.kill = () => {
+            killed = true;
+        };
 
         await runner.run('/path/to/test.dart', '/root');
         runner.cancel();
@@ -74,8 +76,8 @@ suite('FlutterTestRunner Test Suite', () => {
         assert.ok(killed);
     });
 
-    test('emits complete event on process exit', (done) => {
-        runner.onTestComplete((result) => {
+    test('emits complete event on process exit', done => {
+        runner.onTestComplete(result => {
             assert.strictEqual(result.success, true);
             done();
         });
@@ -84,8 +86,8 @@ suite('FlutterTestRunner Test Suite', () => {
         mockChildProcess.emit('close', 0);
     });
 
-    test('emits complete event on failure', (done) => {
-        runner.onTestComplete((result) => {
+    test('emits complete event on failure', done => {
+        runner.onTestComplete(result => {
             assert.strictEqual(result.success, false);
             done();
         });
@@ -94,8 +96,8 @@ suite('FlutterTestRunner Test Suite', () => {
         mockChildProcess.emit('close', 1);
     });
 
-    test('emits complete event on cancellation (null code)', (done) => {
-        runner.onTestComplete((result) => {
+    test('emits complete event on cancellation (null code)', done => {
+        runner.onTestComplete(result => {
             assert.strictEqual(result.cancelled, true);
             assert.strictEqual(result.success, false);
             done();
@@ -105,7 +107,7 @@ suite('FlutterTestRunner Test Suite', () => {
         mockChildProcess.emit('close', null);
     });
 
-    test('parses coverage on success', (done) => {
+    test('parses coverage on success', done => {
         const workspaceRoot = '/root';
         const testFile = '/root/test/foo_test.dart';
 
@@ -123,7 +125,7 @@ suite('FlutterTestRunner Test Suite', () => {
             update: () => Promise.resolve()
         } as any);
 
-        runner.onTestComplete((result) => {
+        runner.onTestComplete(result => {
             assert.strictEqual(result.success, true);
             assert.ok(result.coverage);
             assert.strictEqual(result.coverage?.percentage, 100);
@@ -134,7 +136,7 @@ suite('FlutterTestRunner Test Suite', () => {
         mockChildProcess.emit('close', 0);
     });
 
-    test('handles LcovParser error gracefully', (done) => {
+    test('handles LcovParser error gracefully', done => {
         const workspaceRoot = '/root';
         const testFile = '/root/test/foo_test.dart';
 
@@ -146,7 +148,7 @@ suite('FlutterTestRunner Test Suite', () => {
             get: (key: string) => 'coverage/lcov.info'
         } as any);
 
-        runner.onTestOutput((output) => {
+        runner.onTestOutput(output => {
             if (output.includes('[Error] Failed to parse coverage')) {
                 assert.ok(true);
                 done();

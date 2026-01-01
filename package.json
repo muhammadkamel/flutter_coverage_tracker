@@ -3,7 +3,7 @@
   "publisher": "muhammadkamel",
   "displayName": "Flutter Coverage Tracker",
   "description": "Tracks and displays Flutter test coverage in the status bar.",
-  "version": "0.17.0",
+  "version": "0.19.6",
   "icon": "resources/icons/flutter_coverage_tracker_logo.png",
   "repository": {
     "type": "git",
@@ -226,26 +226,6 @@
           "when": "explorerResourceIsFolder"
         },
         {
-          "command": "flutter-coverage-tracker.runTestsAndroid",
-          "group": "flutter_coverage_tracker",
-          "when": "explorerResourceIsFolder"
-        },
-        {
-          "command": "flutter-coverage-tracker.runTestsIOS",
-          "group": "flutter_coverage_tracker",
-          "when": "explorerResourceIsFolder"
-        },
-        {
-          "command": "flutter-coverage-tracker.runTestsWeb",
-          "group": "flutter_coverage_tracker",
-          "when": "explorerResourceIsFolder"
-        },
-        {
-          "command": "flutter-coverage-tracker.runTestsDesktop",
-          "group": "flutter_coverage_tracker",
-          "when": "explorerResourceIsFolder"
-        },
-        {
           "command": "flutter-coverage-tracker.runRelatedTest",
           "group": "flutter_coverage_tracker",
           "when": "resourceLangId == dart"
@@ -301,7 +281,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "mocha --ui tdd -r out/test/unit-setup.js out/test/unit/**/*.test.js",
+    "test:unit": "mocha --ui tdd -r out/test/unit-setup.js 'out/test/unit/**/*.test.js'",
     "coverage": "nyc --reporter=lcov --reporter=text npm run test:unit"
   },
   "devDependencies": {
@@ -322,6 +302,7 @@
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
     "postcss-cli": "^11.0.1",
+    "prettier": "^3.7.4",
     "sinon": "^21.0.1",
     "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",

@@ -4,10 +4,12 @@ import { FileSystemUtils } from './FileSystemUtils';
 import { getExcludedFileExtensions } from './TestGenerationConstants';
 
 export class TestFileGenerator {
-
     public static async createTestFile(sourceFilePath: string, workspaceRoot: string): Promise<boolean> {
         const testFilePaths = FileSystemUtils.getPossibleTestFilePaths(sourceFilePath, workspaceRoot);
-        const testFilePath = testFilePaths[0]; // Primary candidate for creation
+
+        // Choose primary candidate based on content
+        const isMixed = this.isMixedAbstractConcreteFile(sourceFilePath);
+        const testFilePath = isMixed && testFilePaths.length > 1 ? testFilePaths[1] : testFilePaths[0];
 
         if (testFilePaths.some(p => fs.existsSync(p))) {
             return false; // Already exists in one of the possible locations
@@ -16,6 +18,16 @@ export class TestFileGenerator {
         // Skip generated files
         const excludedExtensions = getExcludedFileExtensions();
         if (excludedExtensions.some(ext => sourceFilePath.endsWith(ext))) {
+            return false;
+        }
+
+        // Skip barrel files (export only)
+        if (this.isExportOnlyFile(sourceFilePath)) {
+            return false;
+        }
+
+        // Skip abstract-only files
+        if (this.isAbstractOnlyFile(sourceFilePath)) {
             return false;
         }
 
@@ -88,5 +100,131 @@ void main() {
   });
 }
 `;
+    }
+
+    private static isExportOnlyFile(filePath: string): boolean {
+        try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const lines = content.split('\n');
+            let hasExport = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (
+                    !line ||
+                    line.startsWith('//') ||
+                    line.startsWith('/*') ||
+                    line.endsWith('*/') ||
+                    line.startsWith('*') ||
+                    line.startsWith('import ')
+                ) {
+                    continue; // Skip empty lines, comments, and imports
+                }
+
+                if (line.startsWith('export ')) {
+                    hasExport = true;
+                    continue;
+                }
+
+                if (line.startsWith('library ')) {
+                    continue;
+                }
+
+                // If we find any other keyword, it's not an export-only file
+                return false;
+            }
+
+            return hasExport;
+        } catch (e) {
+            console.error(`Error reading file to check if it's export-only: ${filePath}`, e);
+            return false;
+        }
+    }
+
+    private static isAbstractOnlyFile(filePath: string): boolean {
+        try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const lines = content.split('\n');
+            let hasAbstractClass = false;
+            let hasConcreteClass = false;
+            let hasFunction = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (
+                    !line ||
+                    line.startsWith('//') ||
+                    line.startsWith('/*') ||
+                    line.endsWith('*/') ||
+                    line.startsWith('*') ||
+                    line.startsWith('import ') ||
+                    line.startsWith('export ') ||
+                    line.startsWith('library ')
+                ) {
+                    continue; // Skip boiler plate
+                }
+
+                if (line.startsWith('abstract class ')) {
+                    hasAbstractClass = true;
+                    continue;
+                }
+
+                if (line.startsWith('class ')) {
+                    hasConcreteClass = true;
+                    break;
+                }
+
+                // Check for functions (basic check for common Dart function patterns)
+                if (line.includes('(') && line.includes(')') && (line.includes('{') || line.includes('=>'))) {
+                    hasFunction = true;
+                    break;
+                }
+
+                // If it's something else, let's play it safe and assume it's logic
+                // return false;
+            }
+
+            return hasAbstractClass && !hasConcreteClass && !hasFunction;
+        } catch (e) {
+            console.error(`Error reading file to check if it's abstract-only: ${filePath}`, e);
+            return false;
+        }
+    }
+
+    public static isMixedAbstractConcreteFile(filePath: string): boolean {
+        try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const lines = content.split('\n');
+            let hasAbstractClass = false;
+            let hasConcreteClass = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (
+                    !line ||
+                    line.startsWith('//') ||
+                    line.startsWith('/*') ||
+                    line.endsWith('*/') ||
+                    line.startsWith('*')
+                ) {
+                    continue;
+                }
+
+                if (line.startsWith('abstract class ')) {
+                    hasAbstractClass = true;
+                } else if (line.startsWith('class ')) {
+                    hasConcreteClass = true;
+                }
+
+                if (hasAbstractClass && hasConcreteClass) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (e) {
+            console.error(`Error reading file to check if it's mixed abstract/concrete: ${filePath}`, e);
+            return false;
+        }
     }
 }

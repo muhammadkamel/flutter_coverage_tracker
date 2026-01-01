@@ -45,9 +45,12 @@ end_of_record`;
 
         test('should cache suite coverage', async () => {
             const lcovPath = path.join(tempDir, 'coverage.lcov');
-            fs.writeFileSync(lcovPath, `SF:lib/test.dart
+            fs.writeFileSync(
+                lcovPath,
+                `SF:lib/test.dart
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseSuiteCoverage('test_suite', 'test/test.dart', lcovPath);
             const cached = manager.getSuiteCoverage('test_suite');
@@ -63,15 +66,21 @@ end_of_record`);
             const lcov1 = path.join(tempDir, 'suite1.lcov');
             const lcov2 = path.join(tempDir, 'suite2.lcov');
 
-            fs.writeFileSync(lcov1, `SF:lib/file1.dart
+            fs.writeFileSync(
+                lcov1,
+                `SF:lib/file1.dart
 DA:1,1
 DA:2,1
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:lib/file2.dart
+            fs.writeFileSync(
+                lcov2,
+                `SF:lib/file2.dart
 DA:1,1
 DA:2,0
-end_of_record`);
+end_of_record`
+            );
 
             const results = await manager.parseAllSuites([
                 { suiteName: 'suite1', suitePath: 'test/suite1.dart', lcovPath: lcov1 },
@@ -91,14 +100,20 @@ end_of_record`);
 
             const targetFile = 'lib/shared/utils.dart';
 
-            fs.writeFileSync(lcov1, `SF:${targetFile}
+            fs.writeFileSync(
+                lcov1,
+                `SF:${targetFile}
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:${targetFile}
+            fs.writeFileSync(
+                lcov2,
+                `SF:${targetFile}
 DA:1,1
 DA:2,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseAllSuites([
                 { suiteName: 'suite1', suitePath: 'test/suite1.dart', lcovPath: lcov1 },
@@ -125,17 +140,23 @@ end_of_record`);
 
             const sharedFile = 'lib/shared.dart';
 
-            fs.writeFileSync(lcov1, `SF:${sharedFile}
+            fs.writeFileSync(
+                lcov1,
+                `SF:${sharedFile}
 DA:1,1
 DA:2,1
 DA:3,1
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:${sharedFile}
+            fs.writeFileSync(
+                lcov2,
+                `SF:${sharedFile}
 DA:1,1
 DA:2,1
 DA:4,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseAllSuites([
                 { suiteName: 'suite1', suitePath: 'test/suite1.dart', lcovPath: lcov1 },
@@ -159,13 +180,19 @@ end_of_record`);
             const lcov1 = path.join(tempDir, 'suite1.lcov');
             const lcov2 = path.join(tempDir, 'suite2.lcov');
 
-            fs.writeFileSync(lcov1, `SF:lib/file1.dart
+            fs.writeFileSync(
+                lcov1,
+                `SF:lib/file1.dart
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:lib/file2.dart
+            fs.writeFileSync(
+                lcov2,
+                `SF:lib/file2.dart
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseAllSuites([
                 { suiteName: 'suite1', suitePath: 'test/suite1.dart', lcovPath: lcov1 },
@@ -185,13 +212,19 @@ end_of_record`);
             const lcov1 = path.join(tempDir, 'coverage1.lcov');
             const lcov2 = path.join(tempDir, 'coverage2.lcov');
 
-            fs.writeFileSync(lcov1, `SF:lib/test.dart
+            fs.writeFileSync(
+                lcov1,
+                `SF:lib/test.dart
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:lib/test.dart
+            fs.writeFileSync(
+                lcov2,
+                `SF:lib/test.dart
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseAllSuites([
                 {
@@ -217,21 +250,27 @@ end_of_record`);
             const lcov1 = path.join(tempDir, 'high.lcov');
             const lcov2 = path.join(tempDir, 'low.lcov');
 
-            fs.writeFileSync(lcov1, `SF:lib/file.dart
+            fs.writeFileSync(
+                lcov1,
+                `SF:lib/file.dart
 DA:1,1
 DA:2,1
 DA:3,1
 DA:4,1
 DA:5,1
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:lib/file.dart
+            fs.writeFileSync(
+                lcov2,
+                `SF:lib/file.dart
 DA:1,1
 DA:2,0
 DA:3,0
 DA:4,0
 DA:5,0
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseAllSuites([
                 { suiteName: 'high_coverage', suitePath: 'test/high.dart', lcovPath: lcov1 },
@@ -291,15 +330,21 @@ end_of_record`);
             const lcov1 = path.join(tempDir, 'suite1.lcov');
             const lcov2 = path.join(tempDir, 'suite2.lcov');
 
-            fs.writeFileSync(lcov1, `SF:lib/file1.dart
+            fs.writeFileSync(
+                lcov1,
+                `SF:lib/file1.dart
 DA:1,1
 DA:2,0
-end_of_record`);
+end_of_record`
+            );
 
-            fs.writeFileSync(lcov2, `SF:lib/file2.dart
+            fs.writeFileSync(
+                lcov2,
+                `SF:lib/file2.dart
 DA:1,1
 DA:2,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseAllSuites([
                 { suiteName: 'suite1', suitePath: 'test/suite1.dart', lcovPath: lcov1 },
@@ -318,9 +363,12 @@ end_of_record`);
     suite('clearCache', () => {
         test('should clear cached coverage data', async () => {
             const lcovPath = path.join(tempDir, 'coverage.lcov');
-            fs.writeFileSync(lcovPath, `SF:lib/test.dart
+            fs.writeFileSync(
+                lcovPath,
+                `SF:lib/test.dart
 DA:1,1
-end_of_record`);
+end_of_record`
+            );
 
             await manager.parseSuiteCoverage('test', 'test/test.dart', lcovPath);
             assert.ok(manager.getSuiteCoverage('test'));

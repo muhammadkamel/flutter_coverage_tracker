@@ -235,8 +235,12 @@ export class CoverageGutterProvider {
         if (lineText.startsWith('import ') || lineText.startsWith('export ')) {
             return false;
         }
-        if (lineText.startsWith('class ') || lineText.startsWith('enum ') ||
-            lineText.startsWith('abstract ') || lineText.startsWith('mixin ')) {
+        if (
+            lineText.startsWith('class ') ||
+            lineText.startsWith('enum ') ||
+            lineText.startsWith('abstract ') ||
+            lineText.startsWith('mixin ')
+        ) {
             return false;
         }
         return true;

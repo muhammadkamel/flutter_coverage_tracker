@@ -3,7 +3,6 @@ import { TestSuggestionEngine } from '../../../../features/test-runner/TestSugge
 import { FileCoverageData } from '../../../../shared/coverage/Coverage';
 
 suite('TestSuggestionEngine', () => {
-
     suite('analyzeCoverage', () => {
         test('should return empty array for empty input', () => {
             const result = TestSuggestionEngine.analyzeCoverage([], '/workspace');
@@ -241,9 +240,7 @@ suite('TestSuggestionEngine', () => {
                 }
             ];
             const result = TestSuggestionEngine.analyzeCoverage(files, '/workspace');
-            const hasUncoveredCount = result[0].suggestions.some(
-                s => s.includes('15')
-            );
+            const hasUncoveredCount = result[0].suggestions.some(s => s.includes('15'));
             assert.ok(hasUncoveredCount);
         });
 

@@ -6,7 +6,6 @@ import * as path from 'path';
  * Engine for analyzing coverage data and generating prioritized test suggestions.
  */
 export class TestSuggestionEngine {
-
     /**
      * Analyzes coverage data and returns prioritized test suggestions.
      * @param coverageFiles Array of file coverage data
@@ -47,9 +46,7 @@ export class TestSuggestionEngine {
         }
 
         // Sort by priority score (descending) and return top N
-        return suggestions
-            .sort((a, b) => b.priorityScore - a.priorityScore)
-            .slice(0, topN);
+        return suggestions.sort((a, b) => b.priorityScore - a.priorityScore).slice(0, topN);
     }
 
     /**
@@ -70,9 +67,7 @@ export class TestSuggestionEngine {
         // Normalize file size (lines found / 100)
         const sizeScore = Math.min(file.linesFound / 100, 10);
 
-        const score = (uncoveredScore * uncoveredWeight) +
-            (coverageGap * coverageWeight) +
-            (sizeScore * sizeWeight);
+        const score = uncoveredScore * uncoveredWeight + coverageGap * coverageWeight + sizeScore * sizeWeight;
 
         return parseFloat(score.toFixed(2));
     }
@@ -81,8 +76,12 @@ export class TestSuggestionEngine {
      * Categorizes priority score into high/medium/low.
      */
     private static categorizePriority(score: number): 'high' | 'medium' | 'low' {
-        if (score >= 40) { return 'high'; }
-        if (score >= 15) { return 'medium'; }
+        if (score >= 40) {
+            return 'high';
+        }
+        if (score >= 15) {
+            return 'medium';
+        }
         return 'low';
     }
 
@@ -90,8 +89,12 @@ export class TestSuggestionEngine {
      * Estimates complexity based on file size.
      */
     private static estimateComplexity(file: FileCoverageData): 'simple' | 'moderate' | 'complex' {
-        if (file.linesFound > 200) { return 'complex'; }
-        if (file.linesFound > 100) { return 'moderate'; }
+        if (file.linesFound > 200) {
+            return 'complex';
+        }
+        if (file.linesFound > 100) {
+            return 'moderate';
+        }
         return 'simple';
     }
 
@@ -111,7 +114,7 @@ export class TestSuggestionEngine {
         if (coverageNeeded > 50) {
             suggestions.push(`Increase coverage by ${coverageNeeded.toFixed(0)}% to reach 100%`);
         } else {
-            suggestions.push(`Add ${Math.ceil(coverageNeeded * file.linesFound / 100)} more test cases`);
+            suggestions.push(`Add ${Math.ceil((coverageNeeded * file.linesFound) / 100)} more test cases`);
         }
 
         // File-type specific suggestions
@@ -148,15 +151,33 @@ export class TestSuggestionEngine {
     private static detectFileType(fileName: string): string {
         const lower = fileName.toLowerCase();
 
-        if (lower.includes('widget')) { return 'widget'; }
-        if (lower.includes('repository')) { return 'repository'; }
-        if (lower.includes('usecase') || lower.includes('use_case')) { return 'usecase'; }
-        if (lower.includes('service')) { return 'service'; }
-        if (lower.includes('controller')) { return 'controller'; }
-        if (lower.includes('cubit')) { return 'cubit'; }
-        if (lower.includes('bloc')) { return 'bloc'; }
-        if (lower.includes('model')) { return 'model'; }
-        if (lower.includes('entity')) { return 'entity'; }
+        if (lower.includes('widget')) {
+            return 'widget';
+        }
+        if (lower.includes('repository')) {
+            return 'repository';
+        }
+        if (lower.includes('usecase') || lower.includes('use_case')) {
+            return 'usecase';
+        }
+        if (lower.includes('service')) {
+            return 'service';
+        }
+        if (lower.includes('controller')) {
+            return 'controller';
+        }
+        if (lower.includes('cubit')) {
+            return 'cubit';
+        }
+        if (lower.includes('bloc')) {
+            return 'bloc';
+        }
+        if (lower.includes('model')) {
+            return 'model';
+        }
+        if (lower.includes('entity')) {
+            return 'entity';
+        }
 
         return 'unknown';
     }

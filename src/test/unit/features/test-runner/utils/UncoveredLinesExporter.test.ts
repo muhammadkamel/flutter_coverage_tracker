@@ -1,10 +1,12 @@
-
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
-import { UncoveredLinesExporter, TestResultData } from '../../../../../features/test-runner/utils/UncoveredLinesExporter';
+import {
+    UncoveredLinesExporter,
+    TestResultData
+} from '../../../../../features/test-runner/utils/UncoveredLinesExporter';
 
 suite('UncoveredLinesExporter Test Suite', () => {
     let sandbox: sinon.SinonSandbox;

@@ -86,10 +86,7 @@ export class CoverageHistoryManager {
      * Get coverage history snapshots
      */
     public getHistory(limit?: number): CoverageSnapshot[] {
-        const history = this.context.workspaceState.get<CoverageSnapshot[]>(
-            CoverageHistoryManager.STORAGE_KEY,
-            []
-        );
+        const history = this.context.workspaceState.get<CoverageSnapshot[]>(CoverageHistoryManager.STORAGE_KEY, []);
 
         // Sort by timestamp descending (newest first)
         history.sort((a, b) => b.timestamp - a.timestamp);
@@ -105,7 +102,7 @@ export class CoverageHistoryManager {
      * Get snapshots within a time range
      */
     public getHistoryInRange(days: number): CoverageSnapshot[] {
-        const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
         return this.getHistory().filter(s => s.timestamp >= cutoff);
     }
 
@@ -176,7 +173,7 @@ export class CoverageHistoryManager {
         const config = vscode.workspace.getConfiguration('flutterCoverage');
         const days = retentionDays || config.get<number>('historyRetentionDays', 90);
 
-        const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
         const history = this.getHistory();
         const originalLength = history.length;
 
@@ -226,7 +223,7 @@ export class CoverageHistoryManager {
     /**
      * Get chart data for visualization
      */
-    public getChartData(days: number = 30): { labels: string[], data: number[] } {
+    public getChartData(days: number = 30): { labels: string[]; data: number[] } {
         const snapshots = this.getHistoryInRange(days);
 
         // Sort by timestamp ascending
@@ -243,10 +240,7 @@ export class CoverageHistoryManager {
     }
 
     private async saveHistory(history: CoverageSnapshot[]): Promise<void> {
-        await this.context.workspaceState.update(
-            CoverageHistoryManager.STORAGE_KEY,
-            history
-        );
+        await this.context.workspaceState.update(CoverageHistoryManager.STORAGE_KEY, history);
     }
 
     private async pruneIfNeeded(): Promise<void> {

@@ -1,4 +1,3 @@
-
 import * as cp from 'child_process';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -42,7 +41,6 @@ export class GitService {
             // "diff --unified=0 HEAD -- file" gives context 0.
             const { stdout } = await this.exec(`diff --unified=0 HEAD -- "${fileName}"`, cwd);
             return this.parseDiffOutput(stdout);
-
         } catch (error) {
             console.warn(`Git error for ${filePath}:`, error);
             return [];
@@ -52,7 +50,7 @@ export class GitService {
     private parseDiffOutput(stdout: string): number[] {
         const lines: number[] = [];
         // Output format example:
-        // @@ -10,0 +11,5 @@ 
+        // @@ -10,0 +11,5 @@
         // means at original line 10, 5 lines were added starting at new line 11.
 
         const regex = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm;

@@ -26,9 +26,9 @@ suite('Multi-Test Webview Dashboard Test Suite', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
 
         assert.ok(content.includes('acquireVsCodeApi'));
-        assert.ok(content.includes('window.addEventListener(\'message\''));
-        assert.ok(content.includes('case \'init-dashboard\''));
-        assert.ok(content.includes('case \'finished\''));
+        assert.ok(content.includes("window.addEventListener('message'"));
+        assert.ok(content.includes("case 'init-dashboard'"));
+        assert.ok(content.includes("case 'finished'"));
         assert.ok(content.includes('rerunBtn.onclick'));
         assert.ok(content.includes('cancelBtn.onclick'));
         assert.ok(content.includes('updateUI()'));
@@ -58,14 +58,17 @@ suite('Multi-Test Webview Dashboard Test Suite', () => {
     test('getWebviewContent includes uncovered lines functions', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
         assert.ok(content.includes('function toggleUncovered'), 'Should have toggleUncovered function');
-        assert.ok(content.includes('function navigateToLine'), 'Should have navigateToLine function for uncovered lines');
+        assert.ok(
+            content.includes('function navigateToLine'),
+            'Should have navigateToLine function for uncovered lines'
+        );
         assert.ok(content.includes('function copyLines'), 'Should have copyLines function');
     });
 
     test('getWebviewContent includes test file navigation function', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
         assert.ok(content.includes('function navigateToTestFile'), 'Should have navigateToTestFile function');
-        assert.ok(content.includes('type: \'navigateToTestFile\''), 'Should post navigateToTestFile message');
+        assert.ok(content.includes("type: 'navigateToTestFile'"), 'Should post navigateToTestFile message');
     });
 
     test('getWebviewContent makes test file names clickable', () => {
@@ -95,7 +98,6 @@ suite('Multi-Test Webview Dashboard Test Suite', () => {
         assert.ok(content.includes('f.path'), 'Should store file path for navigation');
     });
 
-
     test('getWebviewContent creates expandable uncovered lines rows', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
         assert.ok(content.includes('uncovered-'), 'Should create row IDs for uncovered lines');
@@ -115,7 +117,7 @@ suite('Multi-Test Webview Dashboard Test Suite', () => {
     test('getWebviewContent includes tree building logic', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
         assert.ok(content.includes('function buildTree'), 'Should have buildTree function');
-        assert.ok(content.includes('test.name.split(\'/\')'), 'Should split path by slash');
+        assert.ok(content.includes("test.name.split('/')"), 'Should split path by slash');
         assert.ok(content.includes('current.children'), 'Should handle children nodes');
         assert.ok(content.includes('calcStats('), 'Should calculate folder statistics');
     });
@@ -138,7 +140,7 @@ suite('Multi-Test Webview Dashboard Test Suite', () => {
     test('getWebviewContent includes folder row HTML structure', () => {
         const content = MultiTestWebviewGenerator.getWebviewContent('Folder', styleUri);
         assert.ok(content.includes('onclick="toggleFolder'), 'Should have onclick handler for folders');
-        assert.ok(content.includes('isExpanded ? \'📂\' : \'📁\''), 'Should switch folder icon based on state');
+        assert.ok(content.includes("isExpanded ? '📂' : '📁'"), 'Should switch folder icon based on state');
         assert.ok(content.includes('folder.stats.passed === folder.stats.total'), 'Should check for all passed status');
     });
 });

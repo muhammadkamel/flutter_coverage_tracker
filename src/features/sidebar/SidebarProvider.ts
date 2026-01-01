@@ -9,23 +9,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     private _view?: vscode.WebviewView;
 
-    constructor(
-        private readonly _extensionUri: vscode.Uri
-    ) { }
+    constructor(private readonly _extensionUri: vscode.Uri) {}
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken,
+        _token: vscode.CancellationToken
     ) {
         this._view = webviewView;
 
         webviewView.webview.options = {
             // Allow scripts in the webview
             enableScripts: true,
-            localResourceRoots: [
-                this._extensionUri
-            ]
+            localResourceRoots: [this._extensionUri]
         };
 
         this.updateContent();
@@ -36,10 +32,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     vscode.commands.executeCommand('flutter-coverage-tracker.runChangedTests');
                     break;
                 case 'run-folder':
-                    // We need to know which folder to run. 
+                    // We need to know which folder to run.
                     // Since this is a general button, maybe trigger a quick pick or a workspace dialog?
                     // Or reuse existing logic if it supports no-args (which it does via open dialog usually)
-                    // Let's verify how runFolderTests is triggered. 
+                    // Let's verify how runFolderTests is triggered.
                     // It usually takes a uri. If null, it can prompt.
                     // But our implementation might rely on context menu URI.
                     // Let's create a command wrapper in extension.ts if needed, or just let user pick from explorer?

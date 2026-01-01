@@ -39,11 +39,7 @@ suite('GitService Test Suite', () => {
 
         const files = await gitService.getModifiedFiles('/root');
 
-        assert.deepStrictEqual(files.sort(), [
-            'lib/modified.dart',
-            'lib/new_file.dart',
-            'lib/staged.dart'
-        ].sort());
+        assert.deepStrictEqual(files.sort(), ['lib/modified.dart', 'lib/new_file.dart', 'lib/staged.dart'].sort());
     });
 
     test('getModifiedFiles filters non-dart files', async () => {

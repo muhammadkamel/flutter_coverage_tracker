@@ -63,9 +63,9 @@ suite('Webview Test Suite', () => {
     test('getWebviewContent includes message handling', () => {
         const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
 
-        assert.ok(content.includes('window.addEventListener(\'message\''), 'Should include message listener');
-        assert.ok(content.includes('case \'log\''), 'Should handle log messages');
-        assert.ok(content.includes('case \'finished\''), 'Should handle finished messages');
+        assert.ok(content.includes("window.addEventListener('message'"), 'Should include message listener');
+        assert.ok(content.includes("case 'log'"), 'Should handle log messages');
+        assert.ok(content.includes("case 'finished'"), 'Should handle finished messages');
     });
 
     test('getWebviewContent includes navigation functionality', () => {
@@ -91,12 +91,7 @@ suite('Webview Test Suite', () => {
     });
 
     test('getWebviewContent handles different file names', () => {
-        const testCases = [
-            'simple.dart',
-            'complex_test_file.dart',
-            'my-feature_test.dart',
-            'test.dart'
-        ];
+        const testCases = ['simple.dart', 'complex_test_file.dart', 'my-feature_test.dart', 'test.dart'];
 
         testCases.forEach(fileName => {
             const content = WebviewGenerator.getWebviewContent(fileName, styleUri);
@@ -144,15 +139,24 @@ suite('Webview Test Suite', () => {
 
     test('getWebviewContent hides actual coverage initially', () => {
         const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
-        assert.ok(content.includes('id="coverage-container" class="hidden"'), 'Actual coverage container should be hidden initially');
+        assert.ok(
+            content.includes('id="coverage-container" class="hidden"'),
+            'Actual coverage container should be hidden initially'
+        );
     });
 
     test('getWebviewContent resets UI state on rerun click including skeletons', () => {
         const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
 
         assert.ok(content.includes('rerunBtn.onclick'), 'Should have rerun click handler');
-        assert.ok(content.includes('coverageSkeleton.classList.remove(\'hidden\')'), 'Should show coverage skeleton on rerun');
-        assert.ok(content.includes('coverageContainer.classList.add(\'hidden\')'), 'Should hide coverage container on rerun');
+        assert.ok(
+            content.includes("coverageSkeleton.classList.remove('hidden')"),
+            'Should show coverage skeleton on rerun'
+        );
+        assert.ok(
+            content.includes("coverageContainer.classList.add('hidden')"),
+            'Should hide coverage container on rerun'
+        );
     });
 
     test('getWebviewContent includes uncovered lines count in title', () => {
@@ -166,7 +170,10 @@ suite('Webview Test Suite', () => {
         const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
 
         assert.ok(content.includes('document.getElementById'), 'Should get uncovered title element');
-        assert.ok(content.includes('Uncovered Lines (\${lines.length})'), 'Should update title with count in parentheses');
+        assert.ok(
+            content.includes('Uncovered Lines (\${lines.length})'),
+            'Should update title with count in parentheses'
+        );
         assert.ok(content.includes('lines.length'), 'Should use lines.length for count');
     });
 

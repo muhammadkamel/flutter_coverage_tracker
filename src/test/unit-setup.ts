@@ -4,7 +4,9 @@ import * as path from 'path';
 const vscode = {
     EventEmitter: class {
         private ee = new EventEmitter();
-        fire(data: any) { this.ee.emit('data', data); }
+        fire(data: any) {
+            this.ee.emit('data', data);
+        }
         get event() {
             return (cb: any) => {
                 this.ee.on('data', cb);
@@ -25,45 +27,47 @@ const vscode = {
     },
     window: {
         activeTextEditor: undefined as any,
-        showErrorMessage: () => { },
-        showInformationMessage: () => { },
+        showErrorMessage: () => {},
+        showInformationMessage: () => {},
         showSaveDialog: () => Promise.resolve(undefined),
         showTextDocument: () => Promise.resolve({ selection: {} }),
-        createTextEditorDecorationType: () => ({ dispose: () => { } }),
+        createTextEditorDecorationType: () => ({ dispose: () => {} }),
         visibleTextEditors: [],
-        onDidChangeActiveTextEditor: () => ({ dispose: () => { } }),
-        registerFileDecorationProvider: () => ({ dispose: () => { } }),
-        withProgress: (options: any, task: any) => task({ report: () => { } }),
+        onDidChangeActiveTextEditor: () => ({ dispose: () => {} }),
+        registerFileDecorationProvider: () => ({ dispose: () => {} }),
+        withProgress: (options: any, task: any) => task({ report: () => {} }),
         createWebviewPanel: () => ({
             webview: {
                 asWebviewUri: (u: any) => u,
                 postMessage: (msg: any) => {
                     (global as any).lastWebviewMessage = msg;
-                    if (!(global as any).allWebviewMessages) (global as any).allWebviewMessages = [];
+                    if (!(global as any).allWebviewMessages) {
+                        (global as any).allWebviewMessages = [];
+                    }
                     (global as any).allWebviewMessages.push(msg);
                 },
                 onDidReceiveMessage: (cb: any) => {
                     (global as any).lastWebviewCallback = cb;
-                    return { dispose: () => { } };
+                    return { dispose: () => {} };
                 }
             },
             onDidDispose: (cb: any) => {
                 (global as any).lastWebviewDisposeCallback = cb;
-                return { dispose: () => { } };
+                return { dispose: () => {} };
             },
-            reveal: () => { },
-            dispose: () => { }
+            reveal: () => {},
+            dispose: () => {}
         }),
         createStatusBarItem: (alignment: any, priority: any) => ({
-            show: () => { },
-            hide: () => { },
-            dispose: () => { },
+            show: () => {},
+            hide: () => {},
+            dispose: () => {},
             text: '',
             tooltip: '',
             command: ''
         }),
         registerWebviewViewProvider: (id: string, provider: any) => ({
-            dispose: () => { }
+            dispose: () => {}
         })
     },
     workspace: {
@@ -74,20 +78,24 @@ const vscode = {
         }),
         findFiles: (pattern: any) => Promise.resolve([]),
         getWorkspaceFolder: (uri: any) => {
-            if (!vscode.workspace.workspaceFolders) return undefined;
+            if (!vscode.workspace.workspaceFolders) {
+                return undefined;
+            }
             const uriPath = (uri?.fsPath || '').replace(/\\/g, '/');
-            return vscode.workspace.workspaceFolders.find((f: any) => uriPath.startsWith(f.uri.fsPath.replace(/\\/g, '/')));
+            return vscode.workspace.workspaceFolders.find((f: any) =>
+                uriPath.startsWith(f.uri.fsPath.replace(/\\/g, '/'))
+            );
         },
         openTextDocument: () => Promise.resolve({}),
-        onDidSaveTextDocument: () => ({ dispose: () => { } }),
-        onDidChangeConfiguration: () => ({ dispose: () => { } }),
+        onDidSaveTextDocument: () => ({ dispose: () => {} }),
+        onDidChangeConfiguration: () => ({ dispose: () => {} }),
         createFileSystemWatcher: (pattern: any) => {
             const ee = new EventEmitter();
             const watcher = {
                 onDidCreate: (cb: any) => ee.on('create', cb),
                 onDidChange: (cb: any) => ee.on('change', cb),
                 onDidDelete: (cb: any) => ee.on('delete', cb),
-                dispose: () => { },
+                dispose: () => {},
                 // Helper to manual trigger from test
                 _fire: (type: string, data: any) => ee.emit(type, data)
             };
@@ -103,20 +111,42 @@ const vscode = {
         },
         executeCommand: (id: string, ...args: any[]) => {
             const cb = vscode.commands._commands.get(id);
-            if (cb) { return Promise.resolve(cb(...args)); }
+            if (cb) {
+                return Promise.resolve(cb(...args));
+            }
             return Promise.resolve();
         },
         getCommands: () => Promise.resolve(Array.from(vscode.commands._commands.keys()))
     },
     languages: {
-        registerCodeLensProvider: () => ({ dispose: () => { } })
+        registerCodeLensProvider: () => ({ dispose: () => {} })
     },
     StatusBarAlignment: { Left: 1, Right: 2 },
     ViewColumn: { One: 1, Two: 2 },
-    RelativePattern: class { constructor(public base: any, public pattern: string) { } },
-    Position: class { constructor(public line: number, public character: number) { } },
-    Range: class { constructor(public start: any, public end: any) { } },
-    Selection: class { constructor(public anchor: any, public active: any) { } },
+    RelativePattern: class {
+        constructor(
+            public base: any,
+            public pattern: string
+        ) {}
+    },
+    Position: class {
+        constructor(
+            public line: number,
+            public character: number
+        ) {}
+    },
+    Range: class {
+        constructor(
+            public start: any,
+            public end: any
+        ) {}
+    },
+    Selection: class {
+        constructor(
+            public anchor: any,
+            public active: any
+        ) {}
+    },
     TextEditorRevealType: { Default: 0 },
     OverviewRulerLane: { Left: 1, Right: 2, Full: 4 },
     ProgressLocation: { Notification: 1, Window: 10, SourceControl: 15 }
@@ -126,9 +156,9 @@ const vscode = {
 (global as any).vscode = vscode;
 
 // Handle requiring 'vscode' by mocking it in the module cache
-const Module = require('module');
-const originalRequire = Module.prototype.require;
-Module.prototype.require = function (name: string) {
+const nodeModule = require('module');
+const originalRequire = nodeModule.prototype.require;
+nodeModule.prototype.require = function (name: string) {
     if (name === 'vscode') {
         return vscode;
     }

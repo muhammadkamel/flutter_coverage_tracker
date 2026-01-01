@@ -42,7 +42,7 @@ end_of_record
         const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 4);
         assert.strictEqual(result.overall.linesHit, 3);
-        assert.strictEqual(result.overall.percentage, 75.00);
+        assert.strictEqual(result.overall.percentage, 75.0);
     });
 
     test('Parses empty lcov file correctly', async () => {
@@ -76,7 +76,7 @@ end_of_record
         const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 5);
         assert.strictEqual(result.overall.linesHit, 3);
-        assert.strictEqual(result.overall.percentage, 60.00);
+        assert.strictEqual(result.overall.percentage, 60.0);
     });
 
     test('Handles LF=0 case', async () => {
@@ -91,4 +91,3 @@ end_of_record
         assert.strictEqual(result.files[0].percentage, 0);
     });
 });
-

@@ -15,26 +15,27 @@ export class FlutterTestRunner implements ITestRunner {
     private _onTestOutput = new vscode.EventEmitter<string>();
     public readonly onTestOutput = this._onTestOutput.event;
 
-    constructor(
-        private readonly spawnFn: typeof cp.spawn = cp.spawn
-    ) { }
+    constructor(private readonly spawnFn: typeof cp.spawn = cp.spawn) {}
 
     async run(testFilePath: string, workspaceRoot: string): Promise<void> {
         this.cancel(); // Ensure no other test is running
 
         // Using shell: true for better compatibility with PATH
-        const child = this.spawnFn('flutter', ['test', '--coverage', testFilePath], { cwd: workspaceRoot, shell: true });
+        const child = this.spawnFn('flutter', ['test', '--coverage', testFilePath], {
+            cwd: workspaceRoot,
+            shell: true
+        });
         this.activeProcess = child;
 
-        child.stdout.on('data', (data) => {
+        child.stdout.on('data', data => {
             this._onTestOutput.fire(data.toString());
         });
 
-        child.stderr.on('data', (data) => {
+        child.stderr.on('data', data => {
             this._onTestOutput.fire(data.toString());
         });
 
-        child.on('close', async (code) => {
+        child.on('close', async code => {
             if (this.activeProcess === child) {
                 this.activeProcess = undefined;
             }
@@ -56,7 +57,11 @@ export class FlutterTestRunner implements ITestRunner {
 
                         // Try each candidate until we find one with coverage
                         for (const candidate of sourceCandidates) {
-                            const matchResult = CoverageMatcher.findCoverageEntry(candidate, result.files, workspaceRoot);
+                            const matchResult = CoverageMatcher.findCoverageEntry(
+                                candidate,
+                                result.files,
+                                workspaceRoot
+                            );
                             if (matchResult && matchResult.fileCoverage) {
                                 coverageData = matchResult.fileCoverage;
                                 sourceFile = candidate; // Use the one that matched

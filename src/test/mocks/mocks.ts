@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ITestRunner, IFileWatcher, TestRunResult } from '../../features/test-runner/interfaces';
 
 export class MockTestRunner implements ITestRunner {
-    public runCalledWith: { file: string, root: string } | undefined;
+    public runCalledWith: { file: string; root: string } | undefined;
     public cancelCalled = false;
 
     // Simulate events

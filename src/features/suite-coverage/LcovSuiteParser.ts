@@ -6,7 +6,6 @@ import { FileCoverage } from './types';
  * Parser for LCOV coverage files with suite-level tracking
  */
 export class LcovSuiteParser {
-
     /**
      * Parse an LCOV file and extract coverage data
      */
@@ -42,7 +41,6 @@ export class LcovSuiteParser {
                 currentUncoveredLines = [];
                 currentHitCounts = new Map();
                 totalLines = 0;
-
             } else if (trimmed.startsWith('DA:')) {
                 // Data - line coverage information
                 // Format: DA:<line number>,<hit count>
@@ -58,13 +56,10 @@ export class LcovSuiteParser {
                 } else {
                     currentUncoveredLines.push(lineNum);
                 }
-
             } else if (trimmed === 'end_of_record' && currentFile) {
                 // End of current file record
                 const coveredCount = currentCoveredLines.length;
-                const coveragePercent = totalLines > 0
-                    ? (coveredCount / totalLines) * 100
-                    : 0;
+                const coveragePercent = totalLines > 0 ? (coveredCount / totalLines) * 100 : 0;
 
                 fileCoverageMap.set(currentFile, {
                     filePath: currentFile,
@@ -85,9 +80,7 @@ export class LcovSuiteParser {
     /**
      * Merge multiple LCOV coverage maps
      */
-    public mergeCoverage(
-        maps: Map<string, FileCoverage>[]
-    ): Map<string, FileCoverage> {
+    public mergeCoverage(maps: Map<string, FileCoverage>[]): Map<string, FileCoverage> {
         const merged = new Map<string, FileCoverage>();
 
         for (const map of maps) {
@@ -108,19 +101,10 @@ export class LcovSuiteParser {
     /**
      * Merge coverage data for a single file
      */
-    private mergeFileCoverage(
-        coverage1: FileCoverage,
-        coverage2: FileCoverage
-    ): FileCoverage {
-        const allCoveredLines = new Set([
-            ...coverage1.coveredLines,
-            ...coverage2.coveredLines
-        ]);
+    private mergeFileCoverage(coverage1: FileCoverage, coverage2: FileCoverage): FileCoverage {
+        const allCoveredLines = new Set([...coverage1.coveredLines, ...coverage2.coveredLines]);
 
-        const allUncoveredLines = new Set([
-            ...coverage1.uncoveredLines,
-            ...coverage2.uncoveredLines
-        ]);
+        const allUncoveredLines = new Set([...coverage1.uncoveredLines, ...coverage2.uncoveredLines]);
 
         // Remove lines that are covered from uncovered set
         for (const line of allCoveredLines) {
@@ -146,9 +130,7 @@ export class LcovSuiteParser {
         const coveredLines = Array.from(allCoveredLines).sort((a, b) => a - b);
         const uncoveredLines = Array.from(allUncoveredLines).sort((a, b) => a - b);
         const totalLines = coveredLines.length + uncoveredLines.length;
-        const coveragePercent = totalLines > 0
-            ? (coveredLines.length / totalLines) * 100
-            : 0;
+        const coveragePercent = totalLines > 0 ? (coveredLines.length / totalLines) * 100 : 0;
 
         return {
             filePath: coverage1.filePath,
@@ -163,10 +145,7 @@ export class LcovSuiteParser {
     /**
      * Filter coverage to only include specific files
      */
-    public filterByFiles(
-        coverage: Map<string, FileCoverage>,
-        filePatterns: string[]
-    ): Map<string, FileCoverage> {
+    public filterByFiles(coverage: Map<string, FileCoverage>, filePatterns: string[]): Map<string, FileCoverage> {
         const filtered = new Map<string, FileCoverage>();
 
         for (const [filePath, data] of coverage.entries()) {
@@ -188,10 +167,7 @@ export class LcovSuiteParser {
             const normalizedPattern = pattern.replace(/\\/g, '/');
 
             // Convert glob pattern to regex
-            const regexPattern = normalizedPattern
-                .replace(/\./g, '\\.')
-                .replace(/\*/g, '.*')
-                .replace(/\?/g, '.');
+            const regexPattern = normalizedPattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.');
 
             const regex = new RegExp(regexPattern);
             if (regex.test(normalizedPath)) {
@@ -218,9 +194,7 @@ export class LcovSuiteParser {
             totalCovered += data.coveredLines.length;
         }
 
-        const coveragePercent = totalLines > 0
-            ? (totalCovered / totalLines) * 100
-            : 0;
+        const coveragePercent = totalLines > 0 ? (totalCovered / totalLines) * 100 : 0;
 
         return {
             totalLines,

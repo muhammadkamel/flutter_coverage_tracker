@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { PlatformCoverageManager } from '../platform-coverage/PlatformCoverageManager';

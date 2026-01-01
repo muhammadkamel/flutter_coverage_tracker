@@ -21,7 +21,10 @@ export class UncoveredLinesExporter {
         if (basePath) {
             defaultUri = vscode.Uri.file(path.join(basePath, defaultFileName + '_uncovered_report.md'));
         } else if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-            defaultUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, defaultFileName + '_uncovered_report.md');
+            defaultUri = vscode.Uri.joinPath(
+                vscode.workspace.workspaceFolders[0].uri,
+                defaultFileName + '_uncovered_report.md'
+            );
         } else {
             defaultUri = vscode.Uri.file(defaultFileName + '_uncovered_report.md');
         }
@@ -29,7 +32,7 @@ export class UncoveredLinesExporter {
         const uri = await vscode.window.showSaveDialog({
             defaultUri: defaultUri,
             filters: {
-                'Markdown': ['md']
+                Markdown: ['md']
             },
             saveLabel: 'Export Report'
         });
@@ -53,9 +56,7 @@ export class UncoveredLinesExporter {
             // We want to show source file name if possible, else test name
             const fileName = item.sourceFile ? path.basename(item.sourceFile) : item.name;
             const percentage = item.coverage ? `${item.coverage.percentage}%` : 'N/A';
-            const uncovered = item.coverage?.uncoveredLines?.length
-                ? item.coverage.uncoveredLines.join(', ')
-                : 'None';
+            const uncovered = item.coverage?.uncoveredLines?.length ? item.coverage.uncoveredLines.join(', ') : 'None';
 
             md += `**File**: ${fileName}\n\n`;
             md += `**Uncovered lines**: ${uncovered}\n\n`;

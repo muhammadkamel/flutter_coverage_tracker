@@ -71,7 +71,7 @@ suite('SidebarProvider Test Suite', () => {
         let callback: (msg: any) => void;
         mockWebviewView.webview.onDidReceiveMessage.callsFake((cb: any) => {
             callback = cb;
-            return { dispose: () => { } };
+            return { dispose: () => {} };
         });
 
         provider.resolveWebviewView(mockWebviewView, {} as any, {} as any);
@@ -80,7 +80,10 @@ suite('SidebarProvider Test Suite', () => {
 
         // Verify run-changed
         callback!({ type: 'run-changed' });
-        assert.ok(executeCommandStub.calledWith('flutter-coverage-tracker.runChangedTests'), 'Should run changed tests');
+        assert.ok(
+            executeCommandStub.calledWith('flutter-coverage-tracker.runChangedTests'),
+            'Should run changed tests'
+        );
 
         // Verify run-folder
         callback!({ type: 'run-folder' });

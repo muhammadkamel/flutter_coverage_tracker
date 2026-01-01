@@ -162,9 +162,8 @@ export class PlatformCoverageManager {
         // Calculate overall statistics
         const totalLinesFound = aggregatedFiles.reduce((sum, f) => sum + f.linesFound, 0);
         const totalLinesHit = aggregatedFiles.reduce((sum, f) => sum + f.linesHit, 0);
-        const overallPercentage = totalLinesFound > 0
-            ? Math.round((totalLinesHit / totalLinesFound) * 100 * 10) / 10
-            : 0;
+        const overallPercentage =
+            totalLinesFound > 0 ? Math.round((totalLinesHit / totalLinesFound) * 100 * 10) / 10 : 0;
 
         return {
             files: aggregatedFiles,
@@ -201,9 +200,7 @@ export class PlatformCoverageManager {
         }
 
         const linesHit = allCoveredLines.size;
-        const percentage = maxLinesFound > 0
-            ? Math.round((linesHit / maxLinesFound) * 100 * 10) / 10
-            : 0;
+        const percentage = maxLinesFound > 0 ? Math.round((linesHit / maxLinesFound) * 100 * 10) / 10 : 0;
 
         return {
             file: fileName,
@@ -239,9 +236,11 @@ export class PlatformCoverageManager {
         if (lowerCommand.includes('--platform chrome') || lowerCommand.includes('--platform web')) {
             return Platform.Web;
         }
-        if (lowerCommand.includes('--platform macos') ||
+        if (
+            lowerCommand.includes('--platform macos') ||
             lowerCommand.includes('--platform windows') ||
-            lowerCommand.includes('--platform linux')) {
+            lowerCommand.includes('--platform linux')
+        ) {
             return Platform.Desktop;
         }
 
@@ -250,23 +249,35 @@ export class PlatformCoverageManager {
 
     public getPlatformIcon(platform: Platform): string {
         switch (platform) {
-            case Platform.Android: return '📱';
-            case Platform.iOS: return '🍎';
-            case Platform.Web: return '🌐';
-            case Platform.Desktop: return '💻';
-            case Platform.All: return '📊';
-            default: return '📋';
+            case Platform.Android:
+                return '📱';
+            case Platform.iOS:
+                return '🍎';
+            case Platform.Web:
+                return '🌐';
+            case Platform.Desktop:
+                return '💻';
+            case Platform.All:
+                return '📊';
+            default:
+                return '📋';
         }
     }
 
     public getPlatformLabel(platform: Platform): string {
         switch (platform) {
-            case Platform.Android: return 'Android';
-            case Platform.iOS: return 'iOS';
-            case Platform.Web: return 'Web';
-            case Platform.Desktop: return 'Desktop';
-            case Platform.All: return 'All Platforms';
-            default: return 'Unknown';
+            case Platform.Android:
+                return 'Android';
+            case Platform.iOS:
+                return 'iOS';
+            case Platform.Web:
+                return 'Web';
+            case Platform.Desktop:
+                return 'Desktop';
+            case Platform.All:
+                return 'All Platforms';
+            default:
+                return 'Unknown';
         }
     }
 

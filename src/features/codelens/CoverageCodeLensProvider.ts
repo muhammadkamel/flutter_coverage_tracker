@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { PlatformCoverageManager } from '../platform-coverage/PlatformCoverageManager';
@@ -28,7 +27,10 @@ export class CoverageCodeLensProvider implements vscode.CodeLensProvider {
         this.onDidChangeCodeLensesEmitter.fire();
     }
 
-    public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
+    public provideCodeLenses(
+        document: vscode.TextDocument,
+        token: vscode.CancellationToken
+    ): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
         const config = vscode.workspace.getConfiguration('flutterCoverage');
         if (!config.get<boolean>('enableCodeLens', true)) {
             return [];
@@ -62,7 +64,7 @@ export class CoverageCodeLensProvider implements vscode.CodeLensProvider {
             const line = document.positionAt(match.index).line;
             const range = new vscode.Range(line, 0, line, 0);
 
-            // For now, we show file-level coverage because mapping class-level ranges 
+            // For now, we show file-level coverage because mapping class-level ranges
             // from LCOV requires complex AST parsing.
             // Future improvement: Calculate class-specific coverage if possible.
 
@@ -96,12 +98,14 @@ export class CoverageCodeLensProvider implements vscode.CodeLensProvider {
             const line = document.positionAt(match.index).line;
             const range = new vscode.Range(line, 0, line, 0);
 
-            lenses.push(new vscode.CodeLens(range, {
-                title: '$(beaker) Run with Coverage',
-                tooltip: 'Run this test file and track coverage',
-                command: 'flutter-coverage-tracker.runRelatedTest',
-                arguments: [document.uri]
-            }));
+            lenses.push(
+                new vscode.CodeLens(range, {
+                    title: '$(beaker) Run with Coverage',
+                    tooltip: 'Run this test file and track coverage',
+                    command: 'flutter-coverage-tracker.runRelatedTest',
+                    arguments: [document.uri]
+                })
+            );
         }
     }
 }

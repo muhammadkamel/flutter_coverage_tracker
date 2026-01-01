@@ -36,8 +36,8 @@ export class CoverageOrchestrator {
         this.isWatching = enable;
         if (enable && this.activeTestFile) {
             this.fileWatcher.watch(this.activeTestFile);
-            // Also watch the source file? 
-            // ideally we should calculate the source file and watch it too. 
+            // Also watch the source file?
+            // ideally we should calculate the source file and watch it too.
             // But for now let's just watch the test file as requested "watch a file".
             // If the user wants to re-run when source changes, we need more logic.
             // The prompt said "watch a file for changes". Usually this implies TDD (source changes -> run test).
@@ -55,7 +55,9 @@ export class CoverageOrchestrator {
     }
 
     private onFileChanged() {
-        if (!this.isWatching || !this.activeTestFile || !this.workspaceRoot) { return; }
+        if (!this.isWatching || !this.activeTestFile || !this.workspaceRoot) {
+            return;
+        }
 
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);

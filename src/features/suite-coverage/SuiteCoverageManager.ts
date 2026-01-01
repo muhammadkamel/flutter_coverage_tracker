@@ -2,13 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { LcovSuiteParser } from './LcovSuiteParser';
-import {
-    SuiteCoverageData,
-    FileCoverage,
-    AggregateSuiteCoverage,
-    SuiteOverlap,
-    SuiteCoverageConfig
-} from './types';
+import { SuiteCoverageData, FileCoverage, AggregateSuiteCoverage, SuiteOverlap, SuiteCoverageConfig } from './types';
 
 /**
  * Manages coverage tracking at the test suite level
@@ -59,11 +53,7 @@ export class SuiteCoverageManager {
 
         for (const result of suiteResults) {
             try {
-                const suiteData = await this.parseSuiteCoverage(
-                    result.suiteName,
-                    result.suitePath,
-                    result.lcovPath
-                );
+                const suiteData = await this.parseSuiteCoverage(result.suiteName, result.suitePath, result.lcovPath);
                 suites.set(result.suiteName, suiteData);
             } catch (error) {
                 console.error(`Failed to parse coverage for ${result.suiteName}:`, error);
@@ -97,7 +87,12 @@ export class SuiteCoverageManager {
             }
         }
 
-        return suites.sort((a, b) => b.coveragePercent - a.coveragePercent);
+        return suites.sort((a, b) => {
+            if (b.coveragePercent !== a.coveragePercent) {
+                return b.coveragePercent - a.coveragePercent;
+            }
+            return b.coveredLines - a.coveredLines;
+        });
     }
 
     /**
@@ -143,9 +138,7 @@ export class SuiteCoverageManager {
             }
         }
 
-        const overlapPercent = suite1.coveredLines > 0
-            ? (overlapLines / suite1.coveredLines) * 100
-            : 0;
+        const overlapPercent = suite1.coveredLines > 0 ? (overlapLines / suite1.coveredLines) * 100 : 0;
 
         return {
             suite1: suite1Name,
@@ -183,9 +176,7 @@ export class SuiteCoverageManager {
     /**
      * Group test suites by feature (based on config mapping)
      */
-    public groupSuitesByFeature(
-        featureMapping: Record<string, string[]>
-    ): Map<string, SuiteCoverageData[]> {
+    public groupSuitesByFeature(featureMapping: Record<string, string[]>): Map<string, SuiteCoverageData[]> {
         const grouped = new Map<string, SuiteCoverageData[]>();
 
         for (const suite of this.suiteCoverageCache.values()) {
@@ -220,8 +211,7 @@ export class SuiteCoverageManager {
      * Get aggregate coverage across all suites
      */
     public getAggregateCoverage(): AggregateSuiteCoverage {
-        const allCoverages = Array.from(this.suiteCoverageCache.values())
-            .map(suite => suite.coveredFiles);
+        const allCoverages = Array.from(this.suiteCoverageCache.values()).map(suite => suite.coveredFiles);
 
         const merged = this.parser.mergeCoverage(allCoverages);
         const totals = this.parser.calculateTotalCoverage(merged);

@@ -153,6 +153,6 @@ end_of_record
         const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.overall.linesFound, 5);
         assert.strictEqual(result.overall.linesHit, 2);
-        assert.strictEqual(result.overall.percentage, 40.00);
+        assert.strictEqual(result.overall.percentage, 40.0);
     });
 });

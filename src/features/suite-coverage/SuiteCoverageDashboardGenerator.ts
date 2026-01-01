@@ -2,14 +2,10 @@
  * Generator for Suite Coverage Dashboard HTML
  */
 export class SuiteCoverageDashboardGenerator {
-
     /**
      * Generate suite coverage section HTML
      */
-    public generateSuiteCoverageSection(
-        suites: Map<string, any>,
-        aggregate: any
-    ): string {
+    public generateSuiteCoverageSection(suites: Map<string, any>, aggregate: any): string {
         const suitesArray = Array.from(suites.values());
 
         return `
@@ -430,16 +426,16 @@ export class SuiteCoverageDashboardGenerator {
         `;
     }
 
-
     /**
      * Generate table rows for each suite
      */
     private generateSuiteRows(suites: any[]): string {
-        return suites.map(suite => {
-            const coverageClass = this.getCoverageClass(suite.coveragePercent);
-            const detailsId = 'details-' + suite.suiteName.replace(/[^a-zA-Z0-9]/g, '-');
+        return suites
+            .map(suite => {
+                const coverageClass = this.getCoverageClass(suite.coveragePercent);
+                const detailsId = 'details-' + suite.suiteName.replace(/[^a-zA-Z0-9]/g, '-');
 
-            return `
+                return `
 <tr data-suite="${suite.suiteName}">
     <td>
         <span class="suite-name" onclick="toggleSuiteDetails('${suite.suiteName}')">
@@ -473,7 +469,8 @@ export class SuiteCoverageDashboardGenerator {
     </td>
 </tr>
 `;
-        }).join('');
+            })
+            .join('');
     }
 
     /**
@@ -486,9 +483,10 @@ export class SuiteCoverageDashboardGenerator {
             return '<li class="file-item">No files covered</li>';
         }
 
-        return files.map(([filePath, coverage]) => {
-            const coverageClass = this.getCoverageClass(coverage.coveragePercent);
-            return `
+        return files
+            .map(([filePath, coverage]) => {
+                const coverageClass = this.getCoverageClass(coverage.coveragePercent);
+                return `
 <li class="file-item">
     <span class="file-path">${filePath}</span>
     <span class="file-coverage coverage-${coverageClass}">
@@ -496,15 +494,20 @@ export class SuiteCoverageDashboardGenerator {
     </span>
 </li>
 `;
-        }).join('');
+            })
+            .join('');
     }
 
     /**
      * Get coverage class based on percentage
      */
     private getCoverageClass(percent: number): string {
-        if (percent >= 90) return 'high';
-        if (percent >= 70) return 'medium';
+        if (percent >= 90) {
+            return 'high';
+        }
+        if (percent >= 70) {
+            return 'medium';
+        }
         return 'low';
     }
 
@@ -512,8 +515,6 @@ export class SuiteCoverageDashboardGenerator {
      * Count suites within threshold range
      */
     private countSuitesByThreshold(suites: any[], min: number, max: number): number {
-        return suites.filter(s =>
-            s.coveragePercent >= min && s.coveragePercent < max
-        ).length;
+        return suites.filter(s => s.coveragePercent >= min && s.coveragePercent < max).length;
     }
 }

@@ -4,7 +4,6 @@ import { FileCoverageData } from '../../../../shared/coverage/Coverage';
 import * as path from 'path';
 
 suite('Coverage Matching Test Suite', () => {
-
     test('normalizePath should use forward slashes', () => {
         assert.strictEqual(CoverageMatcher.normalizePath('foo\\bar\\baz'), 'foo/bar/baz');
         assert.strictEqual(CoverageMatcher.normalizePath('foo/bar/baz'), 'foo/bar/baz');
@@ -15,7 +14,10 @@ suite('Coverage Matching Test Suite', () => {
 
         // Standard case
         assert.deepStrictEqual(
-            CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'features', 'login_test.dart'), workspaceRoot),
+            CoverageMatcher.deduceSourceFilePath(
+                path.join(workspaceRoot, 'test', 'features', 'login_test.dart'),
+                workspaceRoot
+            ),
             ['lib/features/login.dart']
         );
 
@@ -26,7 +28,10 @@ suite('Coverage Matching Test Suite', () => {
         //                       -> download_service.dart
         //                       -> download.dart
         assert.deepStrictEqual(
-            CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'features', 'downloads', 'download_service_impl_test.dart'), workspaceRoot),
+            CoverageMatcher.deduceSourceFilePath(
+                path.join(workspaceRoot, 'test', 'features', 'downloads', 'download_service_impl_test.dart'),
+                workspaceRoot
+            ),
             [
                 'lib/features/downloads/download_service_impl.dart',
                 'lib/features/downloads/download_service.dart',
@@ -36,22 +41,18 @@ suite('Coverage Matching Test Suite', () => {
 
         // Another generic case: complex_name_v2_mock_test.dart
         assert.deepStrictEqual(
-            CoverageMatcher.deduceSourceFilePath(path.join(workspaceRoot, 'test', 'complex_name_v2_test.dart'), workspaceRoot),
-            [
-                'lib/complex_name_v2.dart',
-                'lib/complex_name.dart',
-                'lib/complex.dart'
-            ]
+            CoverageMatcher.deduceSourceFilePath(
+                path.join(workspaceRoot, 'test', 'complex_name_v2_test.dart'),
+                workspaceRoot
+            ),
+            ['lib/complex_name_v2.dart', 'lib/complex_name.dart', 'lib/complex.dart']
         );
 
         // We skip explicit Windows backslash test on Mac because path.relative won't handle it correctly.
         // The extension relies on `path.relative` working for the host OS.
 
         // Not a test file
-        assert.deepStrictEqual(
-            CoverageMatcher.deduceSourceFilePath('/my/workspace/lib/main.dart', workspaceRoot),
-            []
-        );
+        assert.deepStrictEqual(CoverageMatcher.deduceSourceFilePath('/my/workspace/lib/main.dart', workspaceRoot), []);
 
         // Test file not ending in _test.dart
         assert.deepStrictEqual(

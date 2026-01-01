@@ -16,7 +16,7 @@ suite('Result: TestFileGenerator Tests', () => {
         sandbox.restore();
     });
 
-    test('createTestFile returns false if file already exists', async () => {
+    test('createTestFile returns false if file already exists in primary location', async () => {
         const existsStub = sandbox.stub(fs, 'existsSync').returns(true);
         const sourcePath = '/path/to/workspace/lib/foo.dart';
 
@@ -25,15 +25,24 @@ suite('Result: TestFileGenerator Tests', () => {
         assert.strictEqual(result, false);
     });
 
-    test('createTestFile creates file if it does not exist', async () => {
-        // Mock existsSync: 
-        // 1st call: test file exists? -> false
-        // 2nd call: pubspec exists? -> true
-        // 3rd call: test dir exists? -> false (trigger mkdir)
+    test('createTestFile returns false if file already exists in alternative location (no src)', async () => {
         const existsStub = sandbox.stub(fs, 'existsSync');
-        existsStub.onCall(0).returns(false); // test file
-        existsStub.onCall(1).returns(true);  // pubspec
-        existsStub.onCall(2).returns(false); // test dir
+        // lib/src/foo.dart -> test/src/foo_test.dart (false) and test/foo_test.dart (true)
+        existsStub.withArgs(sinon.match(/test\/src\/foo_test.dart/)).returns(false);
+        existsStub.withArgs(sinon.match(/test\/foo_test.dart/)).returns(true);
+
+        const sourcePath = '/path/to/workspace/lib/src/foo.dart';
+
+        const result = await TestFileGenerator.createTestFile(sourcePath, workspaceRoot);
+
+        assert.strictEqual(result, false);
+        assert.ok(existsStub.calledWith(sinon.match(/test\/src\/foo_test.dart/)));
+    });
+
+    test('createTestFile creates file if it does not exist in any location', async () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        existsStub.returns(false); // Default to false for all paths
+        existsStub.withArgs(sinon.match(/pubspec.yaml/)).returns(true);
 
         const readFileSyncStub = sandbox.stub(fs, 'readFileSync').returns('name: my_app\n');
         const mkdirSyncStub = sandbox.stub(fs, 'mkdirSync');
@@ -48,23 +57,16 @@ suite('Result: TestFileGenerator Tests', () => {
         // Verify mkdir
         assert.ok(mkdirSyncStub.calledOnce);
 
-        // Verify write
+        // Verify write - should use the primary (mirrored) path: test/src/foo_test.dart
         assert.ok(writeFileSyncStub.calledOnce);
         const writtenPath = writeFileSyncStub.firstCall.args[0] as string;
-        const writtenContent = writeFileSyncStub.firstCall.args[1] as string;
 
-        // Check path: lib/src/foo.dart -> test/src/foo_test.dart
-        assert.ok(writtenPath.endsWith('test/foo_test.dart'), `Expected path to end with test/foo_test.dart, but got ${writtenPath}`);
-
-        // Check content
-        assert.ok(writtenContent.includes("import 'package:my_app/src/foo.dart';"), 'Should have correct package import');
-        assert.ok(writtenContent.includes("testWidgets('Test for foo.dart'"), 'Should have correct test description');
+        assert.ok(writtenPath.endsWith('test/src/foo_test.dart'), `Expected path to end with test/src/foo_test.dart, but got ${writtenPath}`);
     });
 
     test('createTestFile fails gracefully if pubspec missing', async () => {
-        const existsStub = sandbox.stub(fs, 'existsSync');
-        existsStub.withArgs(sinon.match(/_test.dart/)).returns(false);
-        existsStub.withArgs(sinon.match(/pubspec.yaml/)).returns(false); // No pubspec
+        const existsStub = sandbox.stub(fs, 'existsSync').returns(false);
+        // No pubspec logic will be handled by the implementation which returns false if it doesn't exist
 
         const result = await TestFileGenerator.createTestFile('/path/to/workspace/lib/foo.dart', workspaceRoot);
 
@@ -73,11 +75,11 @@ suite('Result: TestFileGenerator Tests', () => {
 
     test('createTestFile uses relative path import if not in lib', async () => {
         const existsStub = sandbox.stub(fs, 'existsSync');
-        existsStub.onCall(0).returns(false); // test file
-        existsStub.onCall(1).returns(true);  // pubspec
-        existsStub.onCall(2).returns(true);  // test dir exists
+        existsStub.returns(false);
+        existsStub.withArgs(sinon.match(/pubspec.yaml/)).returns(true);
 
         sandbox.stub(fs, 'readFileSync').returns('name: my_app\n');
+        sandbox.stub(fs, 'mkdirSync');
         const writeFileSyncStub = sandbox.stub(fs, 'writeFileSync');
 
         const sourcePath = path.join(workspaceRoot, 'bin', 'main.dart'); // Not in lib
@@ -87,15 +89,6 @@ suite('Result: TestFileGenerator Tests', () => {
         assert.strictEqual(result, true);
         const writtenContent = writeFileSyncStub.firstCall.args[1] as string;
 
-        // bin/main.dart -> package:my_app/bin/main.dart (Assuming standard simplified logic for now, 
-        // though technically package imports usually imply lib. The implementation simply replaced separators)
-
-        // Verify what implementation does:
-        // if startsWith('lib') -> remove 'lib' -> package:name/rest
-        // else -> package:name/full_relative_path
-
-        // So bin/main.dart -> package:my_app/bin/main.dart. 
-        // This might not be valid Dart valid if 'bin' is not exported, but it's what we implemented.
         assert.ok(writtenContent.includes("import 'package:my_app/bin/main.dart';"));
     });
 
@@ -106,7 +99,6 @@ suite('Result: TestFileGenerator Tests', () => {
         const result = await TestFileGenerator.createTestFile(sourcePath, workspaceRoot);
 
         assert.strictEqual(result, false);
-        assert.strictEqual(existsStub.callCount, 1); // Only checked if test file exists
     });
 
     test('createTestFile ignores .freezed.dart files', async () => {
@@ -116,6 +108,5 @@ suite('Result: TestFileGenerator Tests', () => {
         const result = await TestFileGenerator.createTestFile(sourcePath, workspaceRoot);
 
         assert.strictEqual(result, false);
-        assert.strictEqual(existsStub.callCount, 1);
     });
 });

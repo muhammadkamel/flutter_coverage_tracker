@@ -26,12 +26,13 @@ export class CoverageGutterProvider {
         const style = config.get<string>('coveredGutterStyle') || 'green';
 
         return vscode.window.createTextEditorDecorationType({
-            gutterIconPath: this.context.asAbsolutePath('resources/icons/covered.svg'),
-            gutterIconSize: 'contain',
             overviewRulerColor: style === 'blue' ? 'blue' : 'green',
             overviewRulerLane: vscode.OverviewRulerLane.Left,
             isWholeLine: false,
-            backgroundColor: style === 'blue' ? 'rgba(0, 123, 255, 0.1)' : 'rgba(0, 255, 0, 0.1)'
+            backgroundColor: style === 'blue' ? 'rgba(0, 123, 255, 0.15)' : 'rgba(0, 255, 0, 0.15)',
+            borderWidth: '0 0 0 3px',
+            borderStyle: 'solid',
+            borderColor: style === 'blue' ? 'rgba(0, 123, 255, 0.5)' : 'rgba(0, 255, 0, 0.5)'
         });
     }
 
@@ -40,12 +41,13 @@ export class CoverageGutterProvider {
         const style = config.get<string>('uncoveredGutterStyle') || 'red';
 
         return vscode.window.createTextEditorDecorationType({
-            gutterIconPath: this.context.asAbsolutePath('resources/icons/uncovered.svg'),
-            gutterIconSize: 'contain',
             overviewRulerColor: style === 'orange' ? 'orange' : 'red',
             overviewRulerLane: vscode.OverviewRulerLane.Left,
             isWholeLine: false,
-            backgroundColor: style === 'orange' ? 'rgba(255, 165, 0, 0.1)' : 'rgba(255, 0, 0, 0.1)'
+            backgroundColor: style === 'orange' ? 'rgba(255, 165, 0, 0.15)' : 'rgba(255, 0, 0, 0.15)',
+            borderWidth: '0 0 0 3px',
+            borderStyle: 'solid',
+            borderColor: style === 'orange' ? 'rgba(255, 165, 0, 0.6)' : 'rgba(255, 0, 0, 0.6)'
         });
     }
 

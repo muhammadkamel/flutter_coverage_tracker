@@ -3,7 +3,7 @@
   "publisher": "muhammadkamel",
   "displayName": "Flutter Coverage Tracker",
   "description": "Tracks and displays Flutter test coverage in the status bar.",
-  "version": "0.16.0",
+  "version": "0.22.0",
   "icon": "resources/icons/flutter_coverage_tracker_logo.png",
   "repository": {
     "type": "git",
@@ -24,67 +24,77 @@
       {
         "command": "flutter-coverage-tracker.runRelatedTest",
         "title": "Run Related Test",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.runFolderTests",
         "title": "Run Folder Tests",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
+      },
+      {
+        "command": "flutter-coverage-tracker.runChangedTests",
+        "title": "Run Tests for Changed Files (Git)",
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.showDetails",
         "title": "Show Coverage Details",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.showFileDiffCoverage",
         "title": "Show Diff Coverage (New Code)",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.runTestsAndroid",
         "title": "Run Tests (Android)",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.runTestsIOS",
         "title": "Run Tests (iOS)",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.runTestsWeb",
         "title": "Run Tests (Web)",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.runTestsDesktop",
         "title": "Run Tests (Desktop)",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.switchPlatform",
         "title": "Switch Coverage Platform",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.viewHistory",
         "title": "View Coverage History",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.recordSnapshot",
         "title": "Record Coverage Snapshot",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.exportHistory",
         "title": "Export Coverage History",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
       },
       {
         "command": "flutter-coverage-tracker.clearHistory",
         "title": "Clear Coverage History",
-        "category": "Flutter Coverage"
+        "category": "Flutter Coverage Tracker"
+      },
+      {
+        "command": "flutter-coverage-tracker.jumpToTestOrImpl",
+        "title": "Jump to Test/Implementation",
+        "category": "Flutter Coverage Tracker"
       }
     ],
     "configuration": {
@@ -188,27 +198,97 @@
       "editor/context": [
         {
           "command": "flutter-coverage-tracker.runRelatedTest",
-          "when": "editorLangId == dart",
-          "group": "1_modification"
-        }
-      ],
-      "explorer/context": [
-        {
-          "command": "flutter-coverage-tracker.runRelatedTest",
-          "when": "resourceExtname == .dart",
-          "group": "7_modification"
+          "group": "flutter_coverage_tracker",
+          "when": "resourceLangId == dart"
         },
         {
-          "command": "flutter-coverage-tracker.runFolderTests",
-          "when": "explorerResourceIsFolder",
-          "group": "7_modification"
+          "command": "flutter-coverage-tracker.jumpToTestOrImpl",
+          "group": "flutter_coverage_tracker",
+          "when": "resourceLangId == dart"
         }
       ],
       "editor/title/context": [
         {
           "command": "flutter-coverage-tracker.runRelatedTest",
-          "when": "resourceExtname == .dart",
-          "group": "1_modification"
+          "group": "flutter_coverage_tracker",
+          "when": "resourceLangId == dart"
+        },
+        {
+          "command": "flutter-coverage-tracker.jumpToTestOrImpl",
+          "group": "flutter_coverage_tracker",
+          "when": "resourceLangId == dart"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "flutter-coverage-tracker.runFolderTests",
+          "group": "flutter_coverage_tracker",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "flutter-coverage-tracker.runTestsAndroid",
+          "group": "flutter_coverage_tracker",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "flutter-coverage-tracker.runTestsIOS",
+          "group": "flutter_coverage_tracker",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "flutter-coverage-tracker.runTestsWeb",
+          "group": "flutter_coverage_tracker",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "flutter-coverage-tracker.runTestsDesktop",
+          "group": "flutter_coverage_tracker",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "flutter-coverage-tracker.runRelatedTest",
+          "group": "flutter_coverage_tracker",
+          "when": "resourceLangId == dart"
+        },
+        {
+          "command": "flutter-coverage-tracker.jumpToTestOrImpl",
+          "group": "flutter_coverage_tracker",
+          "when": "resourceLangId == dart"
+        },
+        {
+          "command": "flutter-coverage-tracker.runChangedTests",
+          "group": "flutter_coverage_tracker",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "flutter-coverage-tracker.runRelatedTest",
+          "group": "flutter_coverage_tracker",
+          "when": "scmResourceState && resourceLangId == dart"
+        },
+        {
+          "command": "flutter-coverage-tracker.jumpToTestOrImpl",
+          "group": "flutter_coverage_tracker",
+          "when": "scmResourceState && resourceLangId == dart"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "flutter-coverage-tracker-sidebar",
+          "title": "Flutter Coverage Tracker",
+          "icon": "resources/icons/flutter_coverage_tracker_logo.png"
+        }
+      ]
+    },
+    "views": {
+      "flutter-coverage-tracker-sidebar": [
+        {
+          "id": "flutter-coverage-tracker.sidebarView",
+          "name": "Dashboard",
+          "icon": "resources/icons/flutter_coverage_tracker_logo.png"
         }
       ]
     }

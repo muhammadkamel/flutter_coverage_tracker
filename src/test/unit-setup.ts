@@ -29,10 +29,19 @@ const vscode = {
         showInformationMessage: () => { },
         showSaveDialog: () => Promise.resolve(undefined),
         showTextDocument: () => Promise.resolve({ selection: {} }),
+        createTextEditorDecorationType: () => ({ dispose: () => { } }),
+        visibleTextEditors: [],
+        onDidChangeActiveTextEditor: () => ({ dispose: () => { } }),
+        registerFileDecorationProvider: () => ({ dispose: () => { } }),
+        withProgress: (options: any, task: any) => task({ report: () => { } }),
         createWebviewPanel: () => ({
             webview: {
                 asWebviewUri: (u: any) => u,
-                postMessage: () => { },
+                postMessage: (msg: any) => {
+                    (global as any).lastWebviewMessage = msg;
+                    if (!(global as any).allWebviewMessages) (global as any).allWebviewMessages = [];
+                    (global as any).allWebviewMessages.push(msg);
+                },
                 onDidReceiveMessage: (cb: any) => {
                     (global as any).lastWebviewCallback = cb;
                     return { dispose: () => { } };
@@ -52,12 +61,16 @@ const vscode = {
             text: '',
             tooltip: '',
             command: ''
+        }),
+        registerWebviewViewProvider: (id: string, provider: any) => ({
+            dispose: () => { }
         })
     },
     workspace: {
         workspaceFolders: undefined as any,
         getConfiguration: () => ({
-            get: (key: string) => (key === 'coverageFilePath' ? 'coverage/lcov.info' : undefined)
+            get: (key: string) => (key === 'coverageFilePath' ? 'coverage/lcov.info' : undefined),
+            affectsConfiguration: () => false
         }),
         findFiles: (pattern: any) => Promise.resolve([]),
         getWorkspaceFolder: (uri: any) => {
@@ -67,6 +80,7 @@ const vscode = {
         },
         openTextDocument: () => Promise.resolve({}),
         onDidSaveTextDocument: () => ({ dispose: () => { } }),
+        onDidChangeConfiguration: () => ({ dispose: () => { } }),
         createFileSystemWatcher: (pattern: any) => {
             const ee = new EventEmitter();
             const watcher = {
@@ -94,13 +108,18 @@ const vscode = {
         },
         getCommands: () => Promise.resolve(Array.from(vscode.commands._commands.keys()))
     },
+    languages: {
+        registerCodeLensProvider: () => ({ dispose: () => { } })
+    },
     StatusBarAlignment: { Left: 1, Right: 2 },
     ViewColumn: { One: 1, Two: 2 },
     RelativePattern: class { constructor(public base: any, public pattern: string) { } },
     Position: class { constructor(public line: number, public character: number) { } },
     Range: class { constructor(public start: any, public end: any) { } },
     Selection: class { constructor(public anchor: any, public active: any) { } },
-    TextEditorRevealType: { Default: 0 }
+    TextEditorRevealType: { Default: 0 },
+    OverviewRulerLane: { Left: 1, Right: 2, Full: 4 },
+    ProgressLocation: { Notification: 1, Window: 10, SourceControl: 15 }
 };
 
 // Add to global so modules can find it

@@ -5,8 +5,10 @@ import * as vscode from 'vscode';
 
 export class GitService {
     private gitPath: string = 'git';
+    private execFn: typeof cp.exec;
 
-    constructor() {
+    constructor(execFn: typeof cp.exec = cp.exec) {
+        this.execFn = execFn;
         // Future: resolve git path from configuration
     }
 
@@ -68,13 +70,42 @@ export class GitService {
         return lines;
     }
 
+    public async getModifiedFiles(cwd: string): Promise<string[]> {
+        try {
+            // --relative ensures paths are relative to the current subdirectory if needed,
+            // but usually we want relative to repo root or provided cwd.
+            // ls-files --others --exclude-standard: untracked
+            // diff --name-only: unstaged
+            // diff --name-only --cached: staged
+
+            const [untracked, unstaged, staged] = await Promise.all([
+                this.exec('ls-files --others --exclude-standard', cwd),
+                this.exec('diff --name-only', cwd),
+                this.exec('diff --name-only --cached', cwd)
+            ]);
+
+            const allFiles = new Set([
+                ...untracked.stdout.split('\n'),
+                ...unstaged.stdout.split('\n'),
+                ...staged.stdout.split('\n')
+            ]);
+
+            return Array.from(allFiles)
+                .map(f => f.trim())
+                .filter(f => f.length > 0 && f.endsWith('.dart'));
+        } catch (error) {
+            console.warn('Git error fetching modified files:', error);
+            return [];
+        }
+    }
+
     private exec(command: string, cwd: string): Promise<{ stdout: string; stderr: string }> {
         return new Promise((resolve, reject) => {
-            cp.exec(`${this.gitPath} ${command}`, { cwd }, (err, stdout, stderr) => {
+            this.execFn(`${this.gitPath} ${command}`, { cwd }, (err, stdout, stderr) => {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({ stdout, stderr });
+                    resolve({ stdout: (stdout as any).toString(), stderr: (stderr as any).toString() });
                 }
             });
         });

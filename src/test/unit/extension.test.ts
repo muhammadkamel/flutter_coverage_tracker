@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 import { EventEmitter } from 'events';
 import { LcovParser } from '../../shared/coverage/LcovParser';
+import { GitService } from '../../features/git/GitService';
 
 suite('Extension Test Suite', () => {
     let sandbox: sinon.SinonSandbox;
@@ -14,7 +15,9 @@ suite('Extension Test Suite', () => {
         subscriptions: [],
         extensionUri: vscode.Uri.file('/ext'),
         globalState: { get: () => undefined, update: () => Promise.resolve() },
-        workspaceState: { get: () => undefined, update: () => Promise.resolve() }
+        workspaceState: { get: () => undefined, update: () => Promise.resolve() },
+        asAbsolutePath: (rel: string) => '/ext/' + rel,
+        extensionPath: '/ext'
     };
 
     setup(() => {
@@ -28,6 +31,8 @@ suite('Extension Test Suite', () => {
         sandbox.stub(cp, 'spawn').returns(mockChild);
 
         mockContext.subscriptions = [];
+        (global as any).allWebviewMessages = [];
+        (global as any).lastWebviewMessage = undefined;
     });
 
     teardown(() => {
@@ -186,9 +191,9 @@ suite('Extension Test Suite', () => {
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Verify the webview received correct individual statuses
-        if ((global as any).lastWebviewMessage) {
-            const finishedMsg = (global as any).lastWebviewMessage;
-            assert.strictEqual(finishedMsg.type, 'finished');
+        if ((global as any).allWebviewMessages) {
+            const finishedMsg = (global as any).allWebviewMessages.find((m: any) => m.type === 'finished');
+            assert.ok(finishedMsg, 'Should have received finished message');
             assert.strictEqual(finishedMsg.success, false); // Overall failed
             assert.ok(finishedMsg.results);
             assert.strictEqual(finishedMsg.results.length, 3);
@@ -214,6 +219,172 @@ suite('Extension Test Suite', () => {
         // Test rerun and cancel callbacks
         if ((global as any).lastWebviewCallback) {
             await (global as any).lastWebviewCallback({ type: 'rerun' });
+            await (global as any).lastWebviewCallback({ type: 'cancel' });
+        }
+
+        // Test dispose
+        if ((global as any).lastWebviewDisposeCallback) {
+            (global as any).lastWebviewDisposeCallback();
+        }
+    });
+
+    test('Run Changed Tests: success path', async () => {
+        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+
+        // Mock GitService directly
+        sandbox.stub(GitService.prototype, 'isGitRepo').resolves(true);
+        sandbox.stub(GitService.prototype, 'getModifiedFiles').resolves(['lib/foo.dart', 'test/bar_test.dart']);
+
+        sandbox.stub(fs, 'existsSync').returns(true);
+        sandbox.stub(LcovParser, 'parse').resolves({
+            overall: { percentage: 100, linesHit: 10, linesFound: 10 },
+            files: [
+                { file: 'lib/foo.dart', linesFound: 10, linesHit: 10, percentage: 100, uncoveredLines: [] }
+            ]
+        });
+
+        await myExtension.activate(mockContext);
+        await vscode.commands.executeCommand('flutter-coverage-tracker.runChangedTests');
+
+        // Verify webview was initialized (check all messages)
+        const messages = (global as any).allWebviewMessages || [];
+        const initMsg = messages.find((m: any) => m.type === 'init-dashboard');
+        assert.ok(initMsg, 'Should send init-dashboard message');
+        assert.strictEqual(initMsg.files.length, 2);
+
+        // Simulate test completion
+        mockChild.emit('close', 0);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Verify results sent to webview
+        const finishedMsg = ((global as any).allWebviewMessages || []).find((m: any) => m.type === 'finished');
+        assert.ok(finishedMsg, 'Should send finished message');
+        assert.strictEqual(finishedMsg.success, true);
+        assert.ok(finishedMsg.results.length >= 1);
+    });
+
+    test('Run Changed Tests: export message handler should work', async () => {
+        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+
+        // Mock GitService
+        sandbox.stub(GitService.prototype, 'isGitRepo').resolves(true);
+        sandbox.stub(GitService.prototype, 'getModifiedFiles').resolves(['lib/foo.dart']);
+
+        const existsStub = sandbox.stub(fs, 'existsSync').returns(true);
+        sandbox.stub(LcovParser, 'parse').resolves({
+            overall: { percentage: 85, linesHit: 85, linesFound: 100 },
+            files: [
+                { file: 'lib/foo.dart', linesFound: 100, linesHit: 85, percentage: 85, uncoveredLines: [10, 20, 30] }
+            ]
+        });
+
+        await myExtension.activate(mockContext);
+        await vscode.commands.executeCommand('flutter-coverage-tracker.runChangedTests');
+
+        // Simulate test completion
+        mockChild.emit('close', 0);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Test export message handler
+        if ((global as any).lastWebviewCallback) {
+            // Mock the save dialog and file write
+            const showSaveDialogStub = sandbox.stub(vscode.window, 'showSaveDialog').resolves(
+                vscode.Uri.file('/root/git_changes_uncovered_report.md')
+            );
+            const writeFileSyncStub = sandbox.stub(fs, 'writeFileSync');
+
+            await (global as any).lastWebviewCallback({ type: 'export' });
+
+            // Verify save dialog was shown
+            assert.ok(showSaveDialogStub.calledOnce, 'Save dialog should be shown');
+
+            // Verify file was written
+            assert.ok(writeFileSyncStub.calledOnce, 'File should be written');
+
+            // Verify the content includes uncovered lines
+            const content = writeFileSyncStub.firstCall.args[1] as string;
+            assert.ok(content.includes('Uncovered Lines Report'), 'Report should have title');
+        }
+    });
+
+    test('Run Changed Tests: export should handle missing coverage file', async () => {
+        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+
+        // Mock GitService
+        sandbox.stub(GitService.prototype, 'isGitRepo').resolves(true);
+        sandbox.stub(GitService.prototype, 'getModifiedFiles').resolves(['lib/foo.dart']);
+
+        // First call returns true (for test file check), subsequent calls for coverage file return false
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        existsStub.withArgs(sinon.match(/lcov\.info/)).returns(false);
+        existsStub.returns(true);
+
+        sandbox.stub(LcovParser, 'parse').resolves({
+            overall: { percentage: 0, linesHit: 0, linesFound: 0 },
+            files: []
+        });
+
+        await myExtension.activate(mockContext);
+        await vscode.commands.executeCommand('flutter-coverage-tracker.runChangedTests');
+
+        // Simulate test completion
+        mockChild.emit('close', 0);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Test export message handler with no coverage file
+        if ((global as any).lastWebviewCallback) {
+            const showSaveDialogStub = sandbox.stub(vscode.window, 'showSaveDialog').resolves(
+                vscode.Uri.file('/root/git_changes_uncovered_report.md')
+            );
+            const writeFileSyncStub = sandbox.stub(fs, 'writeFileSync');
+
+            await (global as any).lastWebviewCallback({ type: 'export' });
+
+            // Export should still work (with empty results)
+            assert.ok(showSaveDialogStub.calledOnce, 'Save dialog should be shown even with no coverage');
+        }
+    });
+
+    test('Run Changed Tests: navigate and cancel handlers should work', async () => {
+        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+
+        sandbox.stub(GitService.prototype, 'isGitRepo').resolves(true);
+        sandbox.stub(GitService.prototype, 'getModifiedFiles').resolves(['lib/foo.dart']);
+        sandbox.stub(fs, 'existsSync').returns(true);
+        sandbox.stub(LcovParser, 'parse').resolves({
+            overall: { percentage: 100, linesHit: 10, linesFound: 10 },
+            files: []
+        });
+
+        await myExtension.activate(mockContext);
+        await vscode.commands.executeCommand('flutter-coverage-tracker.runChangedTests');
+
+        // Test all message handlers
+        if ((global as any).lastWebviewCallback) {
+            const openDocStub = sandbox.stub(vscode.workspace, 'openTextDocument').resolves({} as any);
+            const showDocStub = sandbox.stub(vscode.window, 'showTextDocument').resolves({
+                selection: {},
+                revealRange: () => { }
+            } as any);
+
+            // Test navigateToLine
+            await (global as any).lastWebviewCallback({
+                type: 'navigateToLine',
+                file: 'lib/foo.dart',
+                line: 10
+            });
+            assert.ok(openDocStub.called, 'Should open document for navigateToLine');
+
+            // Test navigateToTestFile
+            await (global as any).lastWebviewCallback({
+                type: 'navigateToTestFile',
+                filePath: '/root/test/foo_test.dart'
+            });
+
+            // Test rerun
+            await (global as any).lastWebviewCallback({ type: 'rerun' });
+
+            // Test cancel
             await (global as any).lastWebviewCallback({ type: 'cancel' });
         }
 

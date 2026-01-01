@@ -6,10 +6,11 @@ import { getExcludedFileExtensions } from './TestGenerationConstants';
 export class TestFileGenerator {
 
     public static async createTestFile(sourceFilePath: string, workspaceRoot: string): Promise<boolean> {
-        const testFilePath = FileSystemUtils.resolveTestFilePath(sourceFilePath, workspaceRoot);
+        const testFilePaths = FileSystemUtils.getPossibleTestFilePaths(sourceFilePath, workspaceRoot);
+        const testFilePath = testFilePaths[0]; // Primary candidate for creation
 
-        if (fs.existsSync(testFilePath)) {
-            return false; // Already exists
+        if (testFilePaths.some(p => fs.existsSync(p))) {
+            return false; // Already exists in one of the possible locations
         }
 
         // Skip generated files

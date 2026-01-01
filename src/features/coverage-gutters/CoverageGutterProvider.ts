@@ -133,7 +133,8 @@ export class CoverageGutterProvider {
         }
 
         try {
-            const lcov = await LcovParser.parse(coverageFile);
+            const excludedExtensions = config.get<string[]>('excludedFileExtensions') || [];
+            const lcov = await LcovParser.parse(coverageFile, excludedExtensions);
             this.coverageData.clear();
 
             // Build map of file -> uncovered lines

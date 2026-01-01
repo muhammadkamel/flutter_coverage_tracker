@@ -90,4 +90,31 @@ end_of_record
         const result = await LcovParser.parse(tempFile);
         assert.strictEqual(result.files[0].percentage, 0);
     });
+
+    test('Excludes files based on extension', async () => {
+        const content = `
+SF:lib/main.dart
+DA:1,1
+LF:1
+LH:1
+end_of_record
+SF:lib/main.freezed.dart
+DA:1,1
+LF:1
+LH:1
+end_of_record
+SF:lib/main.g.dart
+DA:1,1
+LF:1
+LH:1
+end_of_record
+`;
+        fs.writeFileSync(tempFile, content);
+        const result = await LcovParser.parse(tempFile, ['.freezed.dart', '.g.dart']);
+
+        assert.strictEqual(result.files.length, 1);
+        assert.strictEqual(result.files[0].file, 'lib/main.dart');
+        assert.strictEqual(result.overall.linesFound, 1);
+        assert.strictEqual(result.overall.linesHit, 1);
+    });
 });

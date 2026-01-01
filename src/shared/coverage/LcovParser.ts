@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { CoverageResult, FileCoverageData } from './Coverage';
 
 export class LcovParser {
-    public static parse(filePath: string): Promise<CoverageResult> {
+    public static parse(filePath: string, excludedExtensions: string[] = []): Promise<CoverageResult> {
         return new Promise((resolve, reject) => {
             fs.readFile(filePath, 'utf8', (err, data) => {
                 if (err) {
@@ -37,17 +37,22 @@ export class LcovParser {
                     } else if (line.startsWith('LH:')) {
                         currentLH = parseInt(line.substring(3), 10);
                     } else if (line === 'end_of_record') {
-                        const percentage = currentLF === 0 ? 0 : (currentLH / currentLF) * 100;
-                        files.push({
-                            file: currentFile,
-                            linesFound: currentLF,
-                            linesHit: currentLH,
-                            percentage: parseFloat(percentage.toFixed(2)),
-                            uncoveredLines: currentUncoveredLines.sort((a, b) => a - b)
-                        });
+                        // Check if file should be excluded
+                        const isExcluded = excludedExtensions.some(ext => currentFile.endsWith(ext));
 
-                        totalLinesFound += currentLF;
-                        totalLinesHit += currentLH;
+                        if (!isExcluded) {
+                            const percentage = currentLF === 0 ? 0 : (currentLH / currentLF) * 100;
+                            files.push({
+                                file: currentFile,
+                                linesFound: currentLF,
+                                linesHit: currentLH,
+                                percentage: parseFloat(percentage.toFixed(2)),
+                                uncoveredLines: currentUncoveredLines.sort((a, b) => a - b)
+                            });
+
+                            totalLinesFound += currentLF;
+                            totalLinesHit += currentLH;
+                        }
 
                         // Reset
                         currentFile = '';

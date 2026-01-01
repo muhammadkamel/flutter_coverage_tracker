@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.19.8] - 2026-01-01
+
+### Fixed
+
+- **Command**: Fixed "Run with Coverage" behavior.
+    - Command now correctly identifies when the current file is already a test file (`_test.dart`) and runs it directly.
+    - Prevents unnecessary "Create test file" prompts when running from within a test file.
+    - Improved test runner logic to support running integration tests or test files outside the `test/` directory.
+
+## [0.19.7] - 2026-01-01
+
+### Fixed
+
+- **Coverage**: Extension now respects `flutterCoverage.excludedFileExtensions` setting for coverage calculation and display.
+    - Files matching excluded extensions (e.g., `.freezed.dart`, `.g.dart`) are now filtered out from the dashboard and status bar coverage.
+    - Ensures accurate coverage metrics by ignoring generated code.
+
 ## [0.19.5] - 2026-01-01
 
 ### Added

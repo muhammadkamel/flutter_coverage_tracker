@@ -9,7 +9,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     private _view?: vscode.WebviewView;
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(private readonly _extensionUri: vscode.Uri) { }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -76,7 +76,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
             if (fs.existsSync(coverageFile)) {
                 try {
-                    const data = await LcovParser.parse(coverageFile);
+                    const excludedExtensions = config.get<string[]>('excludedFileExtensions') || [];
+                    const data = await LcovParser.parse(coverageFile, excludedExtensions);
                     coveragePercent = data.overall.percentage;
                 } catch (e) {
                     // ignore

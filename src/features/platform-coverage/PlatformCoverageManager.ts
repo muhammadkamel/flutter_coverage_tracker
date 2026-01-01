@@ -99,7 +99,9 @@ export class PlatformCoverageManager {
         }
 
         try {
-            const coverage = await LcovParser.parse(coverageFile);
+            const config = vscode.workspace.getConfiguration('flutterCoverage');
+            const excludedExtensions = config.get<string[]>('excludedFileExtensions') || [];
+            const coverage = await LcovParser.parse(coverageFile, excludedExtensions);
 
             // Update cached data
             platformData.data = coverage;
@@ -129,7 +131,9 @@ export class PlatformCoverageManager {
             if (defaultData) {
                 const coverageFile = path.join(workspaceRoot, defaultData.coverageFile);
                 if (fs.existsSync(coverageFile)) {
-                    return await LcovParser.parse(coverageFile);
+                    const config = vscode.workspace.getConfiguration('flutterCoverage');
+                    const excludedExtensions = config.get<string[]>('excludedFileExtensions') || [];
+                    return await LcovParser.parse(coverageFile, excludedExtensions);
                 }
             }
             return null;

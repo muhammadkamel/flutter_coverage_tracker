@@ -17,7 +17,7 @@ export class RunRelatedTestCommand implements Command {
         private testRunner: FlutterTestRunner,
         private gutterProvider: CoverageGutterProvider,
         private statusManager: CoverageStatusManager
-    ) {}
+    ) { }
 
     async execute(uri?: vscode.Uri): Promise<void> {
         let targetUri = uri;
@@ -43,13 +43,18 @@ export class RunRelatedTestCommand implements Command {
         }
 
         const workspaceRoot = workspaceFolder.uri.fsPath;
-        const testFilePath = FileSystemUtils.resolveTestFilePath(currentFile, workspaceRoot);
 
-        // Auto-create if missing
-        if (!fs.existsSync(testFilePath)) {
-            const created = await TestFileGenerator.createTestFile(currentFile, workspaceRoot);
-            if (created) {
-                vscode.window.showInformationMessage(`Created test file: ${path.basename(testFilePath)}`);
+        let testFilePath: string;
+        if (currentFile.endsWith('_test.dart')) {
+            testFilePath = currentFile;
+        } else {
+            testFilePath = FileSystemUtils.resolveTestFilePath(currentFile, workspaceRoot);
+            // Auto-create if missing
+            if (!fs.existsSync(testFilePath)) {
+                const created = await TestFileGenerator.createTestFile(currentFile, workspaceRoot);
+                if (created) {
+                    vscode.window.showInformationMessage(`Created test file: ${path.basename(testFilePath)}`);
+                }
             }
         }
 

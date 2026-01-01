@@ -42,7 +42,7 @@ suite('Webview Test Suite', () => {
         assert.ok(content.includes('id="status-badge"'), 'Should include status badge');
         assert.ok(content.includes('id="output"'), 'Should include output div');
         assert.ok(content.includes('id="coverage-container"'), 'Should include coverage container');
-        assert.ok(content.includes('id="uncovered-container"'), 'Should include uncovered lines container');
+        assert.ok(content.includes('id="uncovered-lines-list"'), 'Should include uncovered lines list');
         assert.ok(content.includes('id="progress-container"'), 'Should include progress container');
         assert.ok(content.includes('id="cancel-btn"'), 'Should include cancel button');
         assert.ok(content.includes('id="rerun-btn"'), 'Should include rerun button');
@@ -166,7 +166,7 @@ suite('Webview Test Suite', () => {
         const content = WebviewGenerator.getWebviewContent('test.dart', styleUri);
 
         assert.ok(content.includes('document.getElementById'), 'Should get uncovered title element');
-        assert.ok(content.includes('Uncovered Lines('), 'Should update title with count in parentheses');
+        assert.ok(content.includes('Uncovered Lines (\${lines.length})'), 'Should update title with count in parentheses');
         assert.ok(content.includes('lines.length'), 'Should use lines.length for count');
     });
 

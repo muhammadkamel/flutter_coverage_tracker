@@ -12,6 +12,7 @@ export class CoverageGutterProvider {
     private uncoveredDecoration: vscode.TextEditorDecorationType;
     private coverageData: Map<string, Set<number>> = new Map(); // filePath -> uncovered line numbers
     private disposables: vscode.Disposable[] = [];
+    private activeSessions: number = 0;
 
     constructor(private context: vscode.ExtensionContext) {
         this.coveredDecoration = this.createCoveredDecoration();
@@ -155,7 +156,7 @@ export class CoverageGutterProvider {
         const config = vscode.workspace.getConfiguration('flutterCoverage');
         const enabled = config.get<boolean>('showGutterCoverage');
 
-        if (!enabled) {
+        if (!enabled || this.activeSessions <= 0) {
             editor.setDecorations(this.coveredDecoration, []);
             editor.setDecorations(this.uncoveredDecoration, []);
             return;
@@ -239,6 +240,25 @@ export class CoverageGutterProvider {
             return false;
         }
         return true;
+    }
+
+    public startSession(): void {
+        this.activeSessions++;
+        // Refresh decorations for all visible editors
+        vscode.window.visibleTextEditors.forEach(editor => this.updateDecorations(editor));
+    }
+
+    public endSession(): void {
+        if (this.activeSessions > 0) {
+            this.activeSessions--;
+        }
+
+        if (this.activeSessions === 0) {
+            this.clearAllDecorations();
+        } else {
+            // Refresh in case we want to update state, though usually just clearing if 0 is enough
+            // But if we have multiple sessions, we stay visible.
+        }
     }
 
     private clearAllDecorations(): void {

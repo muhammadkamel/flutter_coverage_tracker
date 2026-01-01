@@ -71,6 +71,7 @@ export function activate(context: vscode.ExtensionContext) {
     let historyManager: CoverageHistoryManager;
     let diffCoverageManager: DiffCoverageManager;
     let gitService: GitService;
+    let gutterProvider: CoverageGutterProvider;
 
     try {
         testRunner = new FlutterTestRunner();
@@ -78,7 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
         orchestrator = new CoverageOrchestrator(testRunner, fileWatcher);
 
         // Initialize Coverage Gutter Provider
-        const gutterProvider = new CoverageGutterProvider(context);
+        // Initialize Coverage Gutter Provider
+        gutterProvider = new CoverageGutterProvider(context);
         context.subscriptions.push(gutterProvider);
 
         // Initialize Platform Coverage Manager
@@ -200,6 +202,9 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             );
 
+            // Start coverage highlight session
+            gutterProvider.startSession();
+
             const styleUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'out', 'webview.css'));
             panel.webview.html = WebviewGenerator.getWebviewContent(fileName, styleUri);
 
@@ -257,6 +262,7 @@ export function activate(context: vscode.ExtensionContext) {
                 orchestrator.cancelTest();
                 outputDisposable.dispose();
                 completeDisposable.dispose();
+                gutterProvider.endSession();
             });
 
             // Run the test initially
@@ -318,6 +324,9 @@ export function activate(context: vscode.ExtensionContext) {
                 retainContextWhenHidden: true
             }
         );
+
+        // Start coverage highlight session
+        gutterProvider.startSession();
 
         const styleUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'out', 'webview.css'));
         panel.webview.html = MultiTestWebviewGenerator.getWebviewContent(folderName, styleUri, []);
@@ -599,6 +608,7 @@ export function activate(context: vscode.ExtensionContext) {
             testRunner.cancel();
             outputDisposable.dispose();
             completeDisposable.dispose();
+            gutterProvider.endSession();
         });
 
         // Initial Run

@@ -1,109 +1,13 @@
 # Changelog
 
-## [0.22.0] - 2025-12-31
-
-### Fixed
-
-- **Critical**: Coverage gutter icons no longer interfere with breakpoints.
-  - Removed SVG icons from the breakpoint gutter area.
-  - Coverage indicators now use subtle background highlighting with left border.
-  - Overview ruler (scrollbar) still shows coverage status for quick reference.
-  - Developers can now set and see breakpoints normally while coverage indicators remain visible.
+## [0.17.0] - 2026-01-01
 
 ### Added
 
-- **Feature**: Editor tab context menu support.
-  - Right-click on file tabs at the top of VS Code to access Flutter Coverage Tracker commands.
-  - "Run Related Test" and "Jump to Test/Implementation" now available in tab context menu.
-  - Provides easier access to commands without switching to file explorer.
-- **Feature**: Git changes (SCM) context menu support.
-  - Right-click on Dart files in the Source Control view to access Flutter Coverage Tracker commands.
-  - "Run Related Test" and "Jump to Test/Implementation" available directly from Git changes.
-  - Streamlines workflow when reviewing and testing changed files.
-
-### Changed
-
-- **UI**: Enhanced coverage visualization with 3px left border and slightly more visible background colors.
-  - Covered lines: Green/Blue background (0.15 opacity) with matching left border.
-  - Uncovered lines: Red/Orange background (0.15 opacity) with matching left border.
-
-## [0.21.0] - 2025-12-27
-
-### Fixed
-
-- **Critical**: Export MD button now works in the Git Changes dashboard.
-  - Previously, clicking "Export MD" in the "Run Tests for Changed Files (Git)" dashboard did nothing.
-  - Added missing `export` message handler to the `runChangedTests` command.
-  - Export generates `git_changes_uncovered_report.md` with uncovered lines for all changed files.
-
-### Testing
-
-- Added unit tests for the Git changes export functionality:
-  - `Run Changed Tests: export message handler should work`
-  - `Run Changed Tests: export should handle missing coverage file`
-  - `Run Changed Tests: navigate and cancel handlers should work`
-
-## [0.20.0] - 2025-12-26
-
-### Fixed
-
-- **Critical**: Recursive activation failure where Sidebar Dashboard would not register if other components failed.
-  - Moved sidebar registration to the initialization start.
-  - Added error boundaries around core component initialization.
-- **UI**: Added missing extension icon for Activity Bar (new SVG design).
-
-### Changed
-
-- **Branding**: Renamed side bar title to "**Flutter Coverage Tracker**".
-- **Branding**: Renamed command category to "**Flutter Coverage Tracker**".
-- **UX**: Separated "Flutter Coverage Tracker" context menu items into their own group to avoid clutter.
-
-## [0.19.0] - 2025-12-26
-
-### Added
-
-- **Feature**: Flutter Coverage Sidebar Dashboard
-  - New dedicated view in the VS Code Activity Bar.
-  - **Quick Actions**: "Run Changed Files", "Run Folder Tests", "Show Details".
-  - **Coverage Stats**: Visual circular progress indicator for overall project coverage.
-  - **Navigation**: Quick links to Coverage History and Suite Dashboard.
-  - Integrated command execution directly from the sidebar UI.
-
-## [0.18.0] - 2025-12-26
-
-### Added
-
-- **Feature**: Run Tests for Git Changed Files
-  - Run tests for all _staged_, _unstaged_, and _untracked_ files with a single command.
-  - Automatically maps implementation files to their tests.
-  - Multi-test dashboard support to view results for all changed files at once.
-  - New accessible command: `Run Tests for Git Changed Files`.
-  - Context menu integration in the File Explorer.
-
-## [0.17.1] - 2025-12-26
-
-### Improved
-
-- **UI**: Moved "Jump to Test/Implementation" command to be adjacent to "Run Related Test" in context menus for better access.
-
-## [0.17.0] - 2025-12-26
-
-### Added
-
-- **Feature**: Jump to Test/Implementation
-  - Toggle quickly between source code and its corresponding test.
-  - Context menu shortcuts in both Editor and File Explorer.
-  - Intelligent bidirectional path resolution (handles `lib/src/` mirroring).
-  - Auto-creation prompt for missing test files using robust generation logic.
-
-### Improved
-
-- **Test Generation**: Prevented overwriting existing test files.
-  - Smart existence check that handles multiple possible test locations.
-  - Better mirroring of the `lib` folder structure.
-  - Improved structure for non-lib Dart files.
-
----
+- **Feature**: Dynamic Coverage Highlights
+  - Coverage highlights are now only visible when a test runner is active (single file or folder dashboard).
+  - Highlights are automatically removed when the test view is closed.
+  - Reduces visual clutter during normal coding sessions.
 
 ## [0.16.0] - 2025-12-25
 

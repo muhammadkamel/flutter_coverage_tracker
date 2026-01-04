@@ -21,7 +21,7 @@ export class RunChangedTestsCommand implements Command {
         private testRunner: FlutterTestRunner,
         private gutterProvider: CoverageGutterProvider,
         private statusManager: CoverageStatusManager
-    ) {}
+    ) { }
 
     async execute(): Promise<void> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -88,12 +88,13 @@ export class RunChangedTestsCommand implements Command {
                 const uniqueTestFiles = Array.from(new Set(testFilesToRun));
 
                 const panel = vscode.window.createWebviewPanel(
-                    'flutterChangedTests',
-                    `Changed Tests: ${uniqueTestFiles.length} files`,
-                    vscode.ViewColumn.One,
+                    'flutterMultiTestRunner',
+                    'Changed Tests',
+                    vscode.ViewColumn.Beside,
                     {
                         enableScripts: true,
-                        retainContextWhenHidden: true
+                        retainContextWhenHidden: true,
+                        localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'out')]
                     }
                 );
 

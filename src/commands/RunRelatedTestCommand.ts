@@ -8,7 +8,8 @@ import { WebviewGenerator } from '../features/test-runner/WebviewGenerator';
 import { CoverageGutterProvider } from '../features/coverage-gutters/CoverageGutterProvider';
 import { CoverageStatusManager } from '../features/status-bar/CoverageStatusManager';
 import { FileSystemUtils } from '../features/test-runner/utils/FileSystemUtils';
-import { TestFileGenerator } from '../features/test-runner/utils/TestFileGenerator';
+import { TestFileGeneratorService } from '../features/test-runner/utils/TestFileGeneratorService';
+import { WorkspaceService } from '../features/test-runner/utils/WorkspaceService';
 
 export class RunRelatedTestCommand implements Command {
     constructor(
@@ -16,7 +17,9 @@ export class RunRelatedTestCommand implements Command {
         private orchestrator: CoverageOrchestrator,
         private testRunner: FlutterTestRunner,
         private gutterProvider: CoverageGutterProvider,
-        private statusManager: CoverageStatusManager
+        private statusManager: CoverageStatusManager,
+        private workspaceService: WorkspaceService = new WorkspaceService(),
+        private testFileGeneratorService: TestFileGeneratorService = new TestFileGeneratorService()
     ) { }
 
     async execute(uri?: vscode.Uri): Promise<void> {
@@ -36,7 +39,7 @@ export class RunRelatedTestCommand implements Command {
             return;
         }
 
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(targetUri);
+        const workspaceFolder = this.workspaceService.getWorkspaceFolder(targetUri);
         if (!workspaceFolder) {
             vscode.window.showErrorMessage('File is not in a workspace.');
             return;
@@ -47,11 +50,18 @@ export class RunRelatedTestCommand implements Command {
         let testFilePath: string;
         if (currentFile.endsWith('_test.dart')) {
             testFilePath = currentFile;
+
+            // Do not automatically update test files with missing stubs
+            // Logic removed based on user request to not add/write tests if already exists
+            const sourceFile = FileSystemUtils.resolveSourceFilePath(currentFile, workspaceRoot);
+            if (sourceFile) {
+                // Potentially we could warn if source file is missing, but for now just proceed to run the test
+            }
         } else {
             testFilePath = FileSystemUtils.resolveTestFilePath(currentFile, workspaceRoot);
             // Auto-create if missing
             if (!fs.existsSync(testFilePath)) {
-                const created = await TestFileGenerator.createTestFile(currentFile, workspaceRoot);
+                const created = await this.testFileGeneratorService.createTestFile(currentFile, workspaceRoot);
                 if (created) {
                     vscode.window.showInformationMessage(`Created test file: ${path.basename(testFilePath)}`);
                 }
@@ -63,10 +73,11 @@ export class RunRelatedTestCommand implements Command {
             const panel = vscode.window.createWebviewPanel(
                 'flutterTestRunner',
                 `Test: ${fileName}`,
-                vscode.ViewColumn.One,
+                vscode.ViewColumn.Beside,
                 {
                     enableScripts: true,
-                    retainContextWhenHidden: true
+                    retainContextWhenHidden: true,
+                    localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'out')]
                 }
             );
 

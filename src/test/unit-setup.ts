@@ -27,15 +27,15 @@ const vscode = {
     },
     window: {
         activeTextEditor: undefined as any,
-        showErrorMessage: () => {},
-        showInformationMessage: () => {},
+        showErrorMessage: () => { },
+        showInformationMessage: () => { },
         showSaveDialog: () => Promise.resolve(undefined),
         showTextDocument: () => Promise.resolve({ selection: {} }),
-        createTextEditorDecorationType: () => ({ dispose: () => {} }),
+        createTextEditorDecorationType: () => ({ dispose: () => { } }),
         visibleTextEditors: [],
-        onDidChangeActiveTextEditor: () => ({ dispose: () => {} }),
-        registerFileDecorationProvider: () => ({ dispose: () => {} }),
-        withProgress: (options: any, task: any) => task({ report: () => {} }),
+        onDidChangeActiveTextEditor: () => ({ dispose: () => { } }),
+        registerFileDecorationProvider: () => ({ dispose: () => { } }),
+        withProgress: (options: any, task: any) => task({ report: () => { } }),
         createWebviewPanel: () => ({
             webview: {
                 asWebviewUri: (u: any) => u,
@@ -48,26 +48,26 @@ const vscode = {
                 },
                 onDidReceiveMessage: (cb: any) => {
                     (global as any).lastWebviewCallback = cb;
-                    return { dispose: () => {} };
+                    return { dispose: () => { } };
                 }
             },
             onDidDispose: (cb: any) => {
                 (global as any).lastWebviewDisposeCallback = cb;
-                return { dispose: () => {} };
+                return { dispose: () => { } };
             },
-            reveal: () => {},
-            dispose: () => {}
+            reveal: () => { },
+            dispose: () => { }
         }),
         createStatusBarItem: (alignment: any, priority: any) => ({
-            show: () => {},
-            hide: () => {},
-            dispose: () => {},
+            show: () => { },
+            hide: () => { },
+            dispose: () => { },
             text: '',
             tooltip: '',
             command: ''
         }),
         registerWebviewViewProvider: (id: string, provider: any) => ({
-            dispose: () => {}
+            dispose: () => { }
         })
     },
     workspace: {
@@ -87,15 +87,15 @@ const vscode = {
             );
         },
         openTextDocument: () => Promise.resolve({}),
-        onDidSaveTextDocument: () => ({ dispose: () => {} }),
-        onDidChangeConfiguration: () => ({ dispose: () => {} }),
+        onDidSaveTextDocument: () => ({ dispose: () => { } }),
+        onDidChangeConfiguration: () => ({ dispose: () => { } }),
         createFileSystemWatcher: (pattern: any) => {
             const ee = new EventEmitter();
             const watcher = {
                 onDidCreate: (cb: any) => ee.on('create', cb),
                 onDidChange: (cb: any) => ee.on('change', cb),
                 onDidDelete: (cb: any) => ee.on('delete', cb),
-                dispose: () => {},
+                dispose: () => { },
                 // Helper to manual trigger from test
                 _fire: (type: string, data: any) => ee.emit(type, data)
             };
@@ -119,7 +119,7 @@ const vscode = {
         getCommands: () => Promise.resolve(Array.from(vscode.commands._commands.keys()))
     },
     languages: {
-        registerCodeLensProvider: () => ({ dispose: () => {} })
+        registerCodeLensProvider: () => ({ dispose: () => { } })
     },
     StatusBarAlignment: { Left: 1, Right: 2 },
     ViewColumn: { One: 1, Two: 2 },
@@ -127,29 +127,32 @@ const vscode = {
         constructor(
             public base: any,
             public pattern: string
-        ) {}
+        ) { }
     },
     Position: class {
         constructor(
             public line: number,
             public character: number
-        ) {}
+        ) { }
     },
     Range: class {
         constructor(
             public start: any,
             public end: any
-        ) {}
+        ) { }
     },
     Selection: class {
         constructor(
             public anchor: any,
             public active: any
-        ) {}
+        ) { }
     },
     TextEditorRevealType: { Default: 0 },
     OverviewRulerLane: { Left: 1, Right: 2, Full: 4 },
-    ProgressLocation: { Notification: 1, Window: 10, SourceControl: 15 }
+    ProgressLocation: { Notification: 1, Window: 10, SourceControl: 15 },
+    ThemeColor: class {
+        constructor(public id: string) { }
+    }
 };
 
 // Add to global so modules can find it

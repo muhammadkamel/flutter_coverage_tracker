@@ -124,6 +124,13 @@ export class MultiTestWebviewGenerator {
                     </svg>
                     <span>Cancel</span>
                 </button>
+                <button id="watch-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-full text-sm font-semibold transition-all flex items-center gap-2 shadow-md hover:shadow-lg" title="Toggle Watch Mode">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    <span>Watch</span>
+                </button>
                 <span id="status-badge" class="gradient-primary px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider text-white animate-pulse-slow shadow-lg">
                     Running
                 </span>
@@ -238,6 +245,7 @@ ${WebviewComponents.getScrollToTopButton()}
         const rerunBtn = document.getElementById('rerun-btn');
         const exportBtn = document.getElementById('export-btn');
         const cancelBtn = document.getElementById('cancel-btn');
+        const watchBtn = document.getElementById('watch-btn');
         
         // Counters
         const totalTestsEl = document.getElementById('total-tests');
@@ -247,6 +255,19 @@ ${WebviewComponents.getScrollToTopButton()}
 
         let tests = [];
         let expandedFolders = new Set(); // Stores paths of expanded folders
+        let isWatching = false;
+
+        // Restore state
+        const previousState = vscode.getState();
+        if (previousState) {
+            if (previousState.isWatching) {
+                isWatching = true;
+                watchBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                watchBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'ring-2', 'ring-blue-300');
+                watchBtn.querySelector('span').textContent = 'Watching';
+                vscode.postMessage({ type: 'toggle-watch', enable: true });
+            }
+        }
 
         window.addEventListener('message', event => {
             const message = event.data;
@@ -315,8 +336,34 @@ ${WebviewComponents.getScrollToTopButton()}
              rerunBtn.classList.add('hidden');
              exportBtn.classList.add('hidden');
              cancelBtn.classList.remove('hidden');
+             
+             // Reset watch if implicit via rerun? Not necessarily.
+             // But usually manual re-run might keep watch active if separate.
+             
              vscode.postMessage({ type: 'rerun' });
         };
+        
+        watchBtn.onclick = () => {
+            isWatching = !isWatching;
+            if (isWatching) {
+                watchBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                watchBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'ring-2', 'ring-blue-300');
+                watchBtn.querySelector('span').textContent = 'Watching';
+                vscode.postMessage({ type: 'toggle-watch', enable: true });
+            } else {
+                watchBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                watchBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'ring-2', 'ring-blue-300');
+                watchBtn.querySelector('span').textContent = 'Watch';
+                vscode.postMessage({ type: 'toggle-watch', enable: false });
+            }
+            saveState();
+        };
+
+        function saveState() {
+             vscode.setState({
+                 isWatching: isWatching
+             });
+        }
         
         exportBtn.onclick = () => {
              vscode.postMessage({ type: 'export' });

@@ -13,14 +13,29 @@ import { TestSuggestionEngine } from '../features/test-runner/TestSuggestionEngi
 import { UncoveredLinesExporter } from '../features/test-runner/utils/UncoveredLinesExporter';
 import { SuiteCoverageDashboardGenerator } from '../features/suite-coverage/SuiteCoverageDashboardGenerator';
 import { SuiteCoverageData, FileCoverage } from '../features/suite-coverage/types';
+import { VsCodeFileWatcher } from '../features/test-runner/VsCodeFileWatcher';
+
+import { ITestRunner } from '../features/test-runner/interfaces';
 
 export class RunFolderTestsCommand implements Command {
+    private fileWatcher: VsCodeFileWatcher;
+    private debounceTimer: NodeJS.Timeout | undefined;
+    private readonly DEBOUNCE_MS = 2000;
+
+    // State for watch mode
+    private activeWatchFolder: string | undefined;
+    private activeTestFolder: string | undefined;
+    private activeWorkspaceRoot: string | undefined;
+
     constructor(
         private context: vscode.ExtensionContext,
-        private testRunner: FlutterTestRunner,
+        private testRunner: ITestRunner,
         private gutterProvider: CoverageGutterProvider,
         private statusManager: CoverageStatusManager
-    ) {}
+    ) {
+        this.fileWatcher = new VsCodeFileWatcher();
+        this.fileWatcher.onDidChange(() => this.onFileChanged());
+    }
 
     async execute(uri?: vscode.Uri): Promise<void> {
         if (!uri) {
@@ -45,13 +60,13 @@ export class RunFolderTestsCommand implements Command {
             testFolderPath = path.join(workspaceRoot, 'test', innerPath);
         }
 
-        // Auto-create test files for all Dart files in the selected folder (if in lib)
-        if (relativeSelectedPath.startsWith('lib')) {
-            const dartFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(folderPath, '**/*.dart'));
-            for (const file of dartFiles) {
-                await TestFileGenerator.createTestFile(file.fsPath, workspaceRoot);
-            }
-        }
+        // Auto-creation of test files removed based on user request to not add/write tests.
+        // if (relativeSelectedPath.startsWith('lib')) {
+        //     const dartFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(folderPath, '**/*.dart'));
+        //     for (const file of dartFiles) {
+        //         await TestFileGenerator.createTestFile(file.fsPath, workspaceRoot);
+        //     }
+        // }
 
         // Re-check for test folder existence after potential creation
         if (!fs.existsSync(testFolderPath)) {
@@ -61,13 +76,15 @@ export class RunFolderTestsCommand implements Command {
         }
 
         const folderName = path.basename(folderPath);
+        const folderTitle = path.basename(folderPath); // Assuming folderName is suitable for title
         const panel = vscode.window.createWebviewPanel(
-            'flutterFolderTests',
-            `Tests: ${folderName}`,
-            vscode.ViewColumn.One,
+            'flutterMultiTestRunner',
+            `Tests: ${folderTitle}`,
+            vscode.ViewColumn.Beside,
             {
                 enableScripts: true,
-                retainContextWhenHidden: true
+                retainContextWhenHidden: true,
+                localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'out')]
             }
         );
 
@@ -303,6 +320,8 @@ export class RunFolderTestsCommand implements Command {
                 }
 
                 await UncoveredLinesExporter.export(results, folderName, workspaceRoot);
+            } else if (message.type === 'toggle-watch') {
+                this.toggleWatch(message.enable, folderPath, testFolderPath, workspaceRoot);
             }
         });
 
@@ -311,9 +330,49 @@ export class RunFolderTestsCommand implements Command {
             outputDisposable.dispose();
             completeDisposable.dispose();
             this.gutterProvider.endSession();
+            this.toggleWatch(false, folderPath, testFolderPath, workspaceRoot);
+            this.fileWatcher.dispose();
         });
 
         // Initial Run
         this.testRunner.run(testFolderPath, workspaceRoot);
+    }
+
+    private toggleWatch(enable: boolean, folderPath: string, testFolderPath: string, workspaceRoot: string) {
+        if (enable) {
+            this.activeWatchFolder = folderPath;
+            this.activeTestFolder = testFolderPath;
+            this.activeWorkspaceRoot = workspaceRoot;
+
+            // Watch recursively for dart files
+            const normalize = (p: string) => p.split(path.sep).join(path.posix.sep);
+            const globString = normalize(folderPath) + '/**/*.dart';
+
+            this.fileWatcher.watch(globString);
+        } else {
+            this.fileWatcher.dispose();
+            this.activeWatchFolder = undefined;
+            this.activeTestFolder = undefined;
+            this.activeWorkspaceRoot = undefined;
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+            }
+        }
+    }
+
+    private onFileChanged() {
+        if (!this.activeWatchFolder || !this.activeTestFolder || !this.activeWorkspaceRoot) {
+            return;
+        }
+
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+
+        this.debounceTimer = setTimeout(() => {
+            if (this.activeTestFolder && this.activeWorkspaceRoot) {
+                this.testRunner.run(this.activeTestFolder, this.activeWorkspaceRoot);
+            }
+        }, this.DEBOUNCE_MS);
     }
 }

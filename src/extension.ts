@@ -256,7 +256,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const panel = vscode.window.createWebviewPanel(
                 'coverageHistory',
                 'Coverage History',
-                vscode.ViewColumn.One,
+                vscode.ViewColumn.Beside,
                 { enableScripts: true }
             );
             panel.webview.html = HistoryWebviewGenerator.getWebviewContent(historyManager); // Fixed: Pass historyManager

@@ -1,4 +1,4 @@
-# Flutter Coverage Tracker
+p # Flutter Coverage Tracker
 
 [![VSCode Marketplace](https://img.shields.io/badge/VS%20Code-Extension-blue)](https://marketplace.visualstudio.com/items?itemName=muhammadkamel.flutter-coverage-tracker)
 [![Version](https://img.shields.io/badge/version-0.10.0-green)](https://github.com/muhammadkamel/flutter_coverage_tracker)
@@ -13,7 +13,8 @@ A powerful VS Code extension that tracks and visualizes Flutter test coverage wi
 - 🌳 **Hierarchical Dashboard** - Organize test results in an expandable folder tree structure
 - 🔍 **Uncovered Lines Navigation** - Click on line numbers to jump directly to untested code
 - 📝 **Export Coverage Reports** - Generate Markdown reports of uncovered lines for team sharing
-- 🔄 **Auto-create Missing Tests** - Automatically generate test file stubs for files without tests
+- 🔄 **Smart Test Creation & Updates** - Auto-create missing test files and smart-update existing ones with stubs for new public methods
+- ↔️ **Jump to Test/Implementation** - Seamlessly switch between source code and its corresponding test file
 - ⚡ **Watch Mode** - Automatically re-run tests when files change
 - 🎨 **Beautiful UI** - Premium dashboard with gradient badges, progress indicators, and smooth animations
 
@@ -43,13 +44,25 @@ A powerful VS Code extension that tracks and visualizes Flutter test coverage wi
 4. Expand folders to see individual test files
 5. Click on line numbers to navigate to uncovered code
 
+#### Smart Test Updating
+
+1. Open a test file (e.g., `test/calculator_test.dart`)
+2. Run **"Run Related Test"**
+3. If the corresponding source file has public methods not covered in the test file, stubs will be automatically appended!
+
+#### Jump to Test / Implementation
+
+1. Open any Dart file
+2. Run command **"Go to Test/Implementation"** (or bind it to a shortcut)
+3. Instantly navigate to the corresponding test file (or back to source)
+
 #### Export Coverage Report
 
 1. After running folder tests, click the **"Export MD"** button in the dashboard
 2. A Markdown report will be generated with:
-   - File names and coverage percentages
-   - Specific uncovered line numbers
-   - Easy sharing with your team
+    - File names and coverage percentages
+    - Specific uncovered line numbers
+    - Easy sharing with your team
 
 ## 📸 Screenshots
 
@@ -76,7 +89,7 @@ Configure the extension through VS Code settings:
 
 ```json
 {
-  "flutterCoverage.coverageFilePath": "coverage/lcov.info"
+    "flutterCoverage.coverageFilePath": "coverage/lcov.info"
 }
 ```
 
@@ -119,9 +132,9 @@ This extension is licensed under the MIT License. See the [LICENSE](LICENSE) fil
 ## 📊 Statistics
 
 - **100% Logic Coverage** on all core modules
-- **92+ Unit Tests** with comprehensive edge case handling
+- **195+ Unit Tests** with comprehensive edge case handling
 - **Dual-layer Testing** architecture (unit + integration tests)
-- **83% Overall Coverage** (statements, branches, functions)
+- **85% Overall Coverage** (statements, branches, functions)
 
 ## 🎉 Changelog
 

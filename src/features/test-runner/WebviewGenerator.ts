@@ -9,6 +9,7 @@ export class WebviewGenerator {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flutter Test Runner</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${styleSrc.scheme}: 'unsafe-inline'; script-src 'unsafe-inline';">
     <link href="${styleSrc}" rel="stylesheet">
     <style>
         /* Interactive Elements */
@@ -408,6 +409,7 @@ ${WebviewComponents.getScrollToTopButton()}
                     break;
                 case 'finished':
                     progressBar.classList.add('hidden');
+                    rerunBtn.classList.remove('hidden');
                     rerunBtn.classList.remove('hidden');
                     cancelBtn.classList.add('hidden');
                     

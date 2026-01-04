@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.20.1] - 2026-01-02
+
+### Fixed
+
+- **Critical Bug**: Fixed webview hang in "Run Related Test" command.
+    - Removed problematic `nonce` directive from Content-Security-Policy that blocked inline script execution.
+    - Webview now correctly updates UI state when tests complete.
+    - Tab switching and message handlers now work as expected.
+- **Enhancement**: Added error handling for process spawn failures in `FlutterTestRunner`.
+    - Better error reporting when Flutter test process fails to start.
+
+### Tests
+
+- Added `WebviewGeneratorCSP.test.ts` with regression tests for CSP configuration.
+- Fixed watch mode test in `RunFolderTestsCommand.test.ts`.
+- All 65 tests passing.
+
+## [0.20.0] - 2026-01-02
+
+### Added
+
+- **Feature**: Smart Test Updates
+    - Running "Run Related Test" on a test file now automatically checks the corresponding source file.
+    - If public methods are missing from the test file, stubs are automatically appended.
+    - Intelligent source file resolution for standard and `_impl` files.
+- **Security**: Enhanced Webview Security
+    - Added strict Content Security Policy (CSP) to test runner webviews.
+    - Restricted resource loading to extension directory using `localResourceRoots`.
+
+### Fixed
+
+- **Bug**: Resolved `InvalidStateError` (Service Worker registration) in Webviews.
+    - Fixed an issue where Webviews would fail to load or throw errors during test execution.
+    - Ensured consistent behavior across all test runner commands (`RunRelated`, `RunFolder`, `RunChanged`).
+
 ## [0.19.8] - 2026-01-01
 
 ### Fixed

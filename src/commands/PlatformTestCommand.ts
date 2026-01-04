@@ -8,11 +8,11 @@ export class PlatformTestCommand implements Command {
         private platform: Platform,
         private platformManager: PlatformCoverageManager,
         private statusManager: CoverageStatusManager
-    ) {}
+    ) { }
 
     async execute(): Promise<void> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
+        if (!workspaceFolders || workspaceFolders.length === 0) {
             vscode.window.showErrorMessage('No workspace folder open');
             return;
         }

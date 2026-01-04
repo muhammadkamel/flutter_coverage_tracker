@@ -86,6 +86,8 @@ export class SuiteCoverageWebviewRenderer {
                     .otherwise(() => 'low');
                 const safeId = suite.suiteName.replace(/[^a-zA-Z0-9]/g, '-');
 
+                const coveredFilesCount = suite.coveredFiles ? (suite.coveredFiles instanceof Map ? suite.coveredFiles.size : suite.coveredFiles.length) : 0;
+
                 return `<tr>
                 <td class="py-3 px-4">
                     <span class="font-medium cursor-pointer hover:text-blue-400" 
@@ -99,7 +101,7 @@ export class SuiteCoverageWebviewRenderer {
                     </span>
                 </td>
                 <td class="py-3 px-4 text-center">${suite.coveredLines} / ${suite.totalLines}</td>
-                <td class="py-3 px-4 text-center">${suite.coveredFiles?.length || 0}</td>
+                <td class="py-3 px-4 text-center">${coveredFilesCount}</td>
                 <td class="py-3 px-4 text-center">
                     <button class="suite-btn" onclick="toggleSuiteDetails('suite-${safeId}')">
                         Details
@@ -122,12 +124,14 @@ export class SuiteCoverageWebviewRenderer {
         return rows;
     }
 
-    private static generateFilesList(files: any[]): string {
-        if (files.length === 0) {
+    private static generateFilesList(files: any[] | Map<string, any>): string {
+        const filesArray = files instanceof Map ? Array.from(files.values()) : files;
+
+        if (filesArray.length === 0) {
             return '<div class="text-xs opacity-50">No files</div>';
         }
 
-        return files
+        return filesArray
             .map(f => {
                 const coverageClass = match(f.coveragePercent)
                     .when(

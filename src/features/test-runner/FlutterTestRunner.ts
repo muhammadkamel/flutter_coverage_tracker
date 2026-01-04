@@ -15,7 +15,7 @@ export class FlutterTestRunner implements ITestRunner {
     private _onTestOutput = new vscode.EventEmitter<string>();
     public readonly onTestOutput = this._onTestOutput.event;
 
-    constructor(private readonly spawnFn: typeof cp.spawn = cp.spawn) {}
+    constructor(private readonly spawnFn: typeof cp.spawn = cp.spawn) { }
 
     async run(testFilePath: string, workspaceRoot: string): Promise<void> {
         this.cancel(); // Ensure no other test is running
@@ -33,6 +33,17 @@ export class FlutterTestRunner implements ITestRunner {
 
         child.stderr.on('data', data => {
             this._onTestOutput.fire(data.toString());
+        });
+
+        child.on('error', (error) => {
+            this._onTestOutput.fire(`[Error] Failed to start test process: ${error.message}\n`);
+            this._onTestComplete.fire({
+                success: false,
+                cancelled: false
+            });
+            if (this.activeProcess === child) {
+                this.activeProcess = undefined;
+            }
         });
 
         child.on('close', async code => {

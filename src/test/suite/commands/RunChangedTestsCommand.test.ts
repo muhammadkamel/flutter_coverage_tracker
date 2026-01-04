@@ -48,11 +48,37 @@ suite('RunChangedTestsCommand Test Suite', () => {
         gutterProvider = new CoverageGutterProvider(context);
         platformManager = new PlatformCoverageManager(); // Needed for StatusManager
         statusManager = new CoverageStatusManager(context, platformManager);
-
         command = new RunChangedTestsCommand(context, gitService, testRunner, gutterProvider, statusManager);
 
         (global as any).allWebviewMessages = [];
         (global as any).lastWebviewMessage = undefined;
+
+        sandbox.stub(vscode.window, 'createWebviewPanel').callsFake((viewType, title, showOptions, options) => {
+            const panel = {
+                webview: {
+                    html: '',
+                    onDidReceiveMessage: (callback: any) => {
+                        (global as any).lastWebviewCallback = callback;
+                    },
+                    postMessage: async (message: any) => {
+                        (global as any).allWebviewMessages.push(message);
+                        (global as any).lastWebviewMessage = message;
+                        return true;
+                    },
+                    asWebviewUri: (uri: vscode.Uri) => uri
+                },
+                onDidDispose: (callback: any) => {
+                    (global as any).lastWebviewDisposeCallback = callback;
+                },
+                reveal: () => { },
+                dispose: () => {
+                    if ((global as any).lastWebviewDisposeCallback) {
+                        (global as any).lastWebviewDisposeCallback();
+                    }
+                }
+            };
+            return panel as any;
+        });
     });
 
     teardown(() => {
@@ -60,7 +86,7 @@ suite('RunChangedTestsCommand Test Suite', () => {
     });
 
     test('Run Changed Tests: success path', async () => {
-        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+        sandbox.stub(vscode.workspace, 'workspaceFolders').value([{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }]);
 
         // Mock GitService calls directly on the instance we created if possible, or prototype
         sandbox.stub(gitService, 'isGitRepo').resolves(true);
@@ -92,7 +118,7 @@ suite('RunChangedTestsCommand Test Suite', () => {
     });
 
     test('Run Changed Tests: should manage gutter highlighting session', async () => {
-        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+        sandbox.stub(vscode.workspace, 'workspaceFolders').value([{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }]);
 
         sandbox.stub(gitService, 'isGitRepo').resolves(true);
         sandbox.stub(gitService, 'getModifiedFiles').resolves(['lib/foo.dart']);
@@ -118,7 +144,7 @@ suite('RunChangedTestsCommand Test Suite', () => {
     });
 
     test('Run Changed Tests: export message handler should work', async () => {
-        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+        sandbox.stub(vscode.workspace, 'workspaceFolders').value([{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }]);
 
         sandbox.stub(gitService, 'isGitRepo').resolves(true);
         sandbox.stub(gitService, 'getModifiedFiles').resolves(['lib/foo.dart']);
@@ -153,7 +179,7 @@ suite('RunChangedTestsCommand Test Suite', () => {
     });
 
     test('Run Changed Tests: export should handle missing coverage file', async () => {
-        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+        sandbox.stub(vscode.workspace, 'workspaceFolders').value([{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }]);
 
         sandbox.stub(gitService, 'isGitRepo').resolves(true);
         sandbox.stub(gitService, 'getModifiedFiles').resolves(['lib/foo.dart']);
@@ -187,7 +213,7 @@ suite('RunChangedTestsCommand Test Suite', () => {
     });
 
     test('Run Changed Tests: navigate and cancel handlers should work', async () => {
-        (vscode.workspace as any).workspaceFolders = [{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }];
+        sandbox.stub(vscode.workspace, 'workspaceFolders').value([{ uri: vscode.Uri.file('/root'), name: 'w', index: 0 }]);
 
         sandbox.stub(gitService, 'isGitRepo').resolves(true);
         sandbox.stub(gitService, 'getModifiedFiles').resolves(['lib/foo.dart']);
@@ -202,7 +228,7 @@ suite('RunChangedTestsCommand Test Suite', () => {
             const openDocStub = sandbox.stub(vscode.workspace, 'openTextDocument').resolves({} as any);
             const showDocStub = sandbox
                 .stub(vscode.window, 'showTextDocument')
-                .resolves({ selection: {}, revealRange: () => {} } as any);
+                .resolves({ selection: {}, revealRange: () => { } } as any);
 
             // Test navigateToLine
             await (global as any).lastWebviewCallback({

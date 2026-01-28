@@ -67,6 +67,41 @@ suite('Result: FileSystemUtils Tests', () => {
         assert.strictEqual(result, sourceFile);
     });
 
+    test('resolveSourceFilePath resolves from foo_test.dart to foo_impl.dart when foo.dart does not exist', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        const testFile = path.join(workspaceRoot, 'test', 'foo_test.dart');
+        const implFile = path.join(workspaceRoot, 'lib', 'foo_impl.dart');
+
+        // foo.dart does not exist, but foo_impl.dart does
+        existsStub.returns(false);
+        existsStub.withArgs(implFile).returns(true);
+
+        const result = FileSystemUtils.resolveSourceFilePath(testFile, workspaceRoot);
+        assert.strictEqual(result, implFile);
+    });
+
+    test('resolveSourceFilePath prefers foo.dart over foo_impl.dart for foo_test.dart', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        const testFile = path.join(workspaceRoot, 'test', 'foo_test.dart');
+        const directFile = path.join(workspaceRoot, 'lib', 'foo.dart');
+        const implFile = path.join(workspaceRoot, 'lib', 'foo_impl.dart');
+
+        // Both files exist - should prefer foo.dart
+        existsStub.withArgs(directFile).returns(true);
+        existsStub.withArgs(implFile).returns(true);
+
+        const result = FileSystemUtils.resolveSourceFilePath(testFile, workspaceRoot);
+        assert.strictEqual(result, directFile);
+    });
+
+    test('getPossibleSourceFilePaths includes _impl variant for non-impl test files', () => {
+        const result = FileSystemUtils.getPossibleSourceFilePaths('foo_test.dart', workspaceRoot);
+
+        // Should include both foo.dart and foo_impl.dart candidates
+        assert.ok(result.some(p => p.endsWith('foo.dart')));
+        assert.ok(result.some(p => p.endsWith('foo_impl.dart')));
+    });
+
     test('getPossibleTestFilePaths includes _impl_test.dart candidates', () => {
         const sourceFile = path.join(workspaceRoot, 'lib', 'foo.dart');
         const result = FileSystemUtils.getPossibleTestFilePaths(sourceFile, workspaceRoot);
@@ -275,5 +310,148 @@ suite('Result: FileSystemUtils Tests', () => {
         const result = FileSystemUtils.getExistingTestFilePaths(sourceFile, workspaceRoot);
         assert.strictEqual(result.length, 1);
         assert.ok(result.includes(flattenedImplTest));
+    });
+
+    test('getExistingSourceFilePaths finds source file in different directory structure', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        const readdirStub = sandbox.stub(fs, 'readdirSync');
+        
+        // Test file at test/features/downloads/download_service_impl_test.dart
+        const testFile = path.join(workspaceRoot, 'test', 'features', 'downloads', 'download_service_impl_test.dart');
+        
+        // Source file at lib/features/downloads/data/services/download_service_impl.dart (different structure!)
+        const sourceFile = path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data', 'services', 'download_service_impl.dart');
+
+        // Direct candidates don't exist
+        existsStub.returns(false);
+        existsStub.withArgs(path.join(workspaceRoot, 'lib')).returns(true);
+        existsStub.withArgs(sourceFile).returns(true);
+        
+        // Mock directory traversal
+        existsStub.withArgs(path.join(workspaceRoot, 'lib', 'features')).returns(true);
+        existsStub.withArgs(path.join(workspaceRoot, 'lib', 'features', 'downloads')).returns(true);
+        existsStub.withArgs(path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data')).returns(true);
+        existsStub.withArgs(path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data', 'services')).returns(true);
+
+        readdirStub.withArgs(path.join(workspaceRoot, 'lib'), { withFileTypes: true }).returns([
+            { name: 'features', isDirectory: () => true, isFile: () => false } as any
+        ]);
+        readdirStub.withArgs(path.join(workspaceRoot, 'lib', 'features'), { withFileTypes: true }).returns([
+            { name: 'downloads', isDirectory: () => true, isFile: () => false } as any
+        ]);
+        readdirStub.withArgs(path.join(workspaceRoot, 'lib', 'features', 'downloads'), { withFileTypes: true }).returns([
+            { name: 'data', isDirectory: () => true, isFile: () => false } as any
+        ]);
+        readdirStub.withArgs(path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data'), { withFileTypes: true }).returns([
+            { name: 'services', isDirectory: () => true, isFile: () => false } as any
+        ]);
+        readdirStub.withArgs(path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data', 'services'), { withFileTypes: true }).returns([
+            { name: 'download_service_impl.dart', isDirectory: () => false, isFile: () => true } as any
+        ]);
+
+        const result = FileSystemUtils.getExistingSourceFilePaths(testFile, workspaceRoot);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0], sourceFile);
+    });
+
+    test('getExistingSourceFilePaths finds source file with mirrored directory structure', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        
+        // Test file at test/features/downloads/data/services/download_queue_manager_test.dart
+        const testFile = path.join(workspaceRoot, 'test', 'features', 'downloads', 'data', 'services', 'download_queue_manager_test.dart');
+        
+        // Source file at lib/features/downloads/data/services/download_queue_manager.dart (mirrored structure)
+        const sourceFile = path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data', 'services', 'download_queue_manager.dart');
+
+        // The mirrored candidate should exist
+        existsStub.returns(false);
+        existsStub.withArgs(sourceFile).returns(true);
+
+        const result = FileSystemUtils.getExistingSourceFilePaths(testFile, workspaceRoot);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0], sourceFile);
+    });
+
+    test('resolveSourceFilePath finds source file with deep mirrored structure', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        
+        const testFile = path.join(workspaceRoot, 'test', 'features', 'downloads', 'data', 'services', 'download_queue_manager_test.dart');
+        const sourceFile = path.join(workspaceRoot, 'lib', 'features', 'downloads', 'data', 'services', 'download_queue_manager.dart');
+
+        existsStub.returns(false);
+        existsStub.withArgs(sourceFile).returns(true);
+
+        const result = FileSystemUtils.resolveSourceFilePath(testFile, workspaceRoot);
+        assert.strictEqual(result, sourceFile);
+    });
+
+    test('findProjectRoot finds project root in monorepo structure', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        
+        // Monorepo structure: workspace/apps/myapp/lib and workspace/apps/myapp/test
+        const monorepoWorkspace = '/workspace';
+        const appRoot = path.join(monorepoWorkspace, 'apps', 'myapp');
+        const testFile = path.join(appRoot, 'test', 'features', 'foo_test.dart');
+
+        // The app has lib and test directories
+        existsStub.returns(false);
+        existsStub.withArgs(path.join(appRoot, 'lib')).returns(true);
+        existsStub.withArgs(path.join(appRoot, 'test')).returns(true);
+        
+        const result = FileSystemUtils.findProjectRoot(testFile, monorepoWorkspace);
+        assert.strictEqual(result, appRoot);
+    });
+
+    test('findProjectRoot finds project root via pubspec.yaml', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        
+        const monorepoWorkspace = '/workspace';
+        const appRoot = path.join(monorepoWorkspace, 'packages', 'my_package');
+        const sourceFile = path.join(appRoot, 'lib', 'src', 'foo.dart');
+
+        // The package has pubspec.yaml
+        existsStub.returns(false);
+        existsStub.withArgs(path.join(appRoot, 'pubspec.yaml')).returns(true);
+        
+        const result = FileSystemUtils.findProjectRoot(sourceFile, monorepoWorkspace);
+        assert.strictEqual(result, appRoot);
+    });
+
+    test('getExistingSourceFilePaths works with monorepo structure', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        
+        const monorepoWorkspace = '/workspace';
+        const appRoot = path.join(monorepoWorkspace, 'apps', 'tilawa');
+        const testFile = path.join(appRoot, 'test', 'features', 'downloads', 'data', 'services', 'download_queue_manager_test.dart');
+        const sourceFile = path.join(appRoot, 'lib', 'features', 'downloads', 'data', 'services', 'download_queue_manager.dart');
+
+        // Setup monorepo structure
+        existsStub.returns(false);
+        existsStub.withArgs(path.join(appRoot, 'lib')).returns(true);
+        existsStub.withArgs(path.join(appRoot, 'test')).returns(true);
+        existsStub.withArgs(sourceFile).returns(true);
+
+        const result = FileSystemUtils.getExistingSourceFilePaths(testFile, monorepoWorkspace);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0], sourceFile);
+    });
+
+    test('getExistingTestFilePaths works with monorepo structure', () => {
+        const existsStub = sandbox.stub(fs, 'existsSync');
+        
+        const monorepoWorkspace = '/workspace';
+        const appRoot = path.join(monorepoWorkspace, 'apps', 'tilawa');
+        const sourceFile = path.join(appRoot, 'lib', 'features', 'downloads', 'data', 'services', 'download_queue_manager.dart');
+        const testFile = path.join(appRoot, 'test', 'features', 'downloads', 'data', 'services', 'download_queue_manager_test.dart');
+
+        // Setup monorepo structure
+        existsStub.returns(false);
+        existsStub.withArgs(path.join(appRoot, 'lib')).returns(true);
+        existsStub.withArgs(path.join(appRoot, 'test')).returns(true);
+        existsStub.withArgs(testFile).returns(true);
+
+        const result = FileSystemUtils.getExistingTestFilePaths(sourceFile, monorepoWorkspace);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0], testFile);
     });
 });

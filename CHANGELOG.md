@@ -1,5 +1,71 @@
 # Changelog
 
+## [0.20.8] - 2026-01-28
+
+### Added
+
+- **Monorepo Support**: Jump to Test/Implementation now works with monorepo structures.
+    - Automatically detects the Flutter project root by looking for `pubspec.yaml` or `lib/` + `test/` directories.
+    - Works with structures like `workspace/apps/myapp/lib` and `workspace/apps/myapp/test`.
+    - No configuration needed - the extension finds the correct project root automatically.
+
+### Tests
+
+- Added 6 new test cases for monorepo support.
+- All 284 unit tests passing.
+
+## [0.20.7] - 2026-01-28
+
+### Fixed
+
+- **Jump to Test/Implementation**: Fixed file resolution for `_impl` variants.
+    - Fixed bug where `_impl_test` suffix was not correctly stripped when searching for source files.
+    - `file_test.dart` now correctly finds `file_impl.dart` when `file.dart` does not exist.
+    - Proper priority ordering: `file_test.dart` prefers `file.dart` over `file_impl.dart`.
+    - `file_impl_test.dart` prefers `file_impl.dart` over `file.dart`.
+
+### Tests
+
+- Added 3 new test cases for `_impl` variant resolution.
+- All unit tests passing (30 FileSystemUtils tests).
+
+## [0.20.6] - 2026-01-28
+
+### Fixed
+
+- **Jump to Implementation**: Fixed "Implementation file not found" error when directory structures differ.
+    - Previously, the extension only looked for source files in mirrored directory paths (e.g., `test/foo/bar_test.dart` → `lib/foo/bar.dart`).
+    - Now the extension performs a **workspace-wide search** within `lib/` to find matching source files.
+    - For example, `test/features/downloads/download_service_impl_test.dart` will now correctly find `lib/features/downloads/data/services/download_service_impl.dart` even though the paths don't mirror exactly.
+    - Smart sorting prioritizes `_impl.dart` files for `_impl_test.dart` tests.
+
+### Tests
+
+- Added test case `getExistingSourceFilePaths finds source file in different directory structure`.
+- All 275 unit tests passing.
+
+## [0.20.5] - 2026-01-28
+
+### Fixed
+
+- **Coverage**: Fixed uncovered lines showing from wrong file in single file tests.
+    - Previously, when no exact source file match was found, the extension would show uncovered lines from an unrelated file (the one with most uncovered lines).
+    - Now the extension uses **fuzzy matching** to find the most relevant source file based on the test file name.
+    - For example, `download_service_impl_test.dart` will now correctly match `download_service_impl.dart` even if the directory structure differs.
+    - If no related file is found, aggregated stats are shown WITHOUT misleading uncovered lines from unrelated files.
+
+- **Coverage**: Fixed coverage data not showing for failed tests.
+    - Coverage data is now parsed regardless of test result, allowing users to see which lines were executed before a test failure.
+
+- **Coverage**: Added detailed logging in Console Output tab to help diagnose coverage matching issues.
+
+### Tests
+
+- Added test case `uses fuzzy matching to find related source file`.
+- Added test case `uses aggregated coverage when no specific file match found`.
+- Added test case `parses coverage even when test fails`.
+- All 274 unit tests passing.
+
 ## [0.20.1] - 2026-01-02
 
 ### Fixed

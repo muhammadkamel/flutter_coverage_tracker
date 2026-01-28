@@ -56,7 +56,9 @@ export class FlutterTestRunner implements ITestRunner {
             let coverageData = undefined;
             let sourceFile = undefined;
 
-            if (success) {
+            // Parse coverage data even if test fails, as Flutter still generates coverage
+            // This allows users to see which lines were executed before the failure
+            if (!cancelled) {
                 const config = vscode.workspace.getConfiguration('flutterCoverage');
                 const relativePath = config.get<string>('coverageFilePath') || 'coverage/lcov.info';
                 const coverageFile = path.join(workspaceRoot, relativePath);
@@ -65,6 +67,9 @@ export class FlutterTestRunner implements ITestRunner {
                     try {
                         const result = await LcovParser.parse(coverageFile);
                         const sourceCandidates = CoverageMatcher.deduceSourceFilePath(testFilePath, workspaceRoot);
+
+                        this._onTestOutput.fire(`[Coverage] Found ${result.files.length} files in lcov.info\n`);
+                        this._onTestOutput.fire(`[Coverage] Looking for source candidates: ${sourceCandidates.join(', ')}\n`);
 
                         // Try each candidate until we find one with coverage
                         for (const candidate of sourceCandidates) {
@@ -76,7 +81,73 @@ export class FlutterTestRunner implements ITestRunner {
                             if (matchResult && matchResult.fileCoverage) {
                                 coverageData = matchResult.fileCoverage;
                                 sourceFile = candidate; // Use the one that matched
+                                this._onTestOutput.fire(`[Coverage] Matched: ${candidate} (${matchResult.matchType})\n`);
                                 break;
+                            }
+                        }
+
+                        // If no specific match found, try fuzzy matching based on test file name
+                        if (!coverageData && result.files.length > 0) {
+                            // Extract the core name from test file (e.g., "download_service_impl" from "download_service_impl_test.dart")
+                            const testFileName = path.basename(testFilePath);
+                            const coreTestName = testFileName.replace(/_test\.dart$/, '').toLowerCase();
+                            
+                            this._onTestOutput.fire(`[Coverage] No exact match. Searching for files matching: "${coreTestName}"\n`);
+                            
+                            // Find files that contain the core test name in their path
+                            const matchingFiles = result.files.filter(f => {
+                                const normalizedPath = f.file.toLowerCase();
+                                const fileName = path.basename(normalizedPath, '.dart');
+                                // Check if file name contains the core test name or vice versa
+                                return fileName.includes(coreTestName) || coreTestName.includes(fileName);
+                            });
+                            
+                            if (matchingFiles.length > 0) {
+                                // Sort by relevance: prefer exact base name match, then by coverage data quality
+                                matchingFiles.sort((a, b) => {
+                                    const aName = path.basename(a.file, '.dart').toLowerCase();
+                                    const bName = path.basename(b.file, '.dart').toLowerCase();
+                                    // Exact match gets priority
+                                    if (aName === coreTestName) {
+                                        return -1;
+                                    }
+                                    if (bName === coreTestName) {
+                                        return 1;
+                                    }
+                                    // Then prefer files with more lines (more substantial)
+                                    return b.linesFound - a.linesFound;
+                                });
+                                
+                                const bestMatch = matchingFiles[0];
+                                coverageData = bestMatch;
+                                sourceFile = bestMatch.file;
+                                this._onTestOutput.fire(`[Coverage] Fuzzy matched: ${bestMatch.file} (${bestMatch.percentage}%)\n`);
+                            } else {
+                                // No matching files found - show overall aggregated stats but without uncovered lines
+                                // since they would be from unrelated files
+                                let totalLinesFound = 0;
+                                let totalLinesHit = 0;
+                                
+                                for (const file of result.files) {
+                                    totalLinesFound += file.linesFound;
+                                    totalLinesHit += file.linesHit;
+                                }
+                                
+                                const percentage = totalLinesFound === 0 ? 0 : parseFloat(((totalLinesHit / totalLinesFound) * 100).toFixed(2));
+                                
+                                // Don't include uncovered lines from unrelated files - that's confusing!
+                                coverageData = {
+                                    file: 'Aggregated (no specific match)',
+                                    linesFound: totalLinesFound,
+                                    linesHit: totalLinesHit,
+                                    percentage: percentage,
+                                    uncoveredLines: [] // Empty - can't show lines from unrelated files
+                                };
+                                sourceFile = sourceCandidates.length > 0 ? sourceCandidates[0] : undefined;
+                                
+                                this._onTestOutput.fire(`[Coverage] No matching source file found in coverage data.\n`);
+                                this._onTestOutput.fire(`[Coverage] Showing aggregated stats: ${percentage}% (${totalLinesHit}/${totalLinesFound} lines)\n`);
+                                this._onTestOutput.fire(`[Coverage] Tip: The source file may not have been executed by this test.\n`);
                             }
                         }
 
@@ -84,10 +155,13 @@ export class FlutterTestRunner implements ITestRunner {
                         // even if we have no coverage data for it.
                         if (!sourceFile && sourceCandidates.length > 0) {
                             sourceFile = sourceCandidates[0];
+                            this._onTestOutput.fire(`[Coverage] No coverage data found. Using first candidate: ${sourceFile}\n`);
                         }
                     } catch (e) {
                         this._onTestOutput.fire(`[Error] Failed to parse coverage: ${e}\n`);
                     }
+                } else {
+                    this._onTestOutput.fire(`[Coverage] Coverage file not found: ${coverageFile}\n`);
                 }
             }
 

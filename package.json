@@ -3,7 +3,7 @@
   "publisher": "muhammadkamel",
   "displayName": "Flutter Coverage Tracker",
   "description": "Tracks and displays Flutter test coverage in the status bar.",
-  "version": "0.20.2",
+  "version": "0.20.8",
   "icon": "resources/icons/flutter_coverage_tracker_logo.png",
   "repository": {
     "type": "git",
